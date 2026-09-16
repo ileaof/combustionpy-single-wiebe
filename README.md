@@ -38,21 +38,22 @@ Mathematica original: `Show[GrafPExp, GrafPSim]`.*
 1. [Estrutura do projeto](#estrutura-do-projeto)
 2. [Instalação](#instalação)
 3. [Execução rápida](#execução-rápida)
-4. [Dados de entrada](#dados-de-entrada)
-5. [Formulação matemática](#formulação-matemática)
-6. [Constantes do motor](#constantes-do-motor)
-7. [Parâmetros de calibração](#parâmetros-de-calibração)
-8. [Sistema de unidades](#sistema-de-unidades)
-9. [Método numérico](#método-numérico)
-10. [Calibração](#calibração)
-11. [Referência da API](#referência-da-api)
-12. [Saídas geradas](#saídas-geradas)
-13. [Resultados de validação e calibração](#resultados-de-validação-e-calibração)
-14. [Particularidades do notebook original](#particularidades-do-notebook-original)
-15. [Diferenças Mathematica × SciPy](#diferenças-mathematica--scipy)
-16. [Testes](#testes)
-17. [Solução de problemas](#solução-de-problemas)
-18. [Referências](#referências)
+4. [Interface gráfica (GUI — Streamlit)](#interface-gráfica-gui--streamlit)
+5. [Dados de entrada](#dados-de-entrada)
+6. [Formulação matemática](#formulação-matemática)
+7. [Constantes do motor](#constantes-do-motor)
+8. [Parâmetros de calibração](#parâmetros-de-calibração)
+9. [Sistema de unidades](#sistema-de-unidades)
+10. [Método numérico](#método-numérico)
+11. [Calibração](#calibração)
+12. [Referência da API](#referência-da-api)
+13. [Saídas geradas](#saídas-geradas)
+14. [Resultados de validação e calibração](#resultados-de-validação-e-calibração)
+15. [Particularidades do notebook original](#particularidades-do-notebook-original)
+16. [Diferenças Mathematica × SciPy](#diferenças-mathematica--scipy)
+17. [Testes](#testes)
+18. [Solução de problemas](#solução-de-problemas)
+19. [Referências](#referências)
 
 ---
 
@@ -130,6 +131,57 @@ Fluxo executado por `run_model.py`:
 2. **Validação** — caso do notebook (`Rc=17, m=0.504, θ₀=−6.54°, Δθ=62°`) → erro 409.385649 kPa;
 3. **Calibração** — PSO (modo compatibilidade) e/ou `differential_evolution`;
 4. **Saídas** — 9 gráficos + 2 CSVs com o melhor ajuste encontrado.
+
+## Interface gráfica (GUI — Streamlit)
+
+Existe uma **interface gráfica completa** para este modelo, na pasta irmã
+`combustion_gui/` (um nível acima deste pacote). Ela não contém equações
+próprias: chama exatamente as funções validadas de `single_wiebe.py`
+(geometria, Wiebe, Hohenberg, EDOs, PSO/DE) através de um objeto
+`EngineConfig` configurável.
+
+### O que a GUI oferece
+
+| Aba | Função |
+|-----|--------|
+| **Experimental Data** | importação `.txt/.csv/.tsv` com separador auto, colunas e unidades configuráveis (ângulo: graus/radianos; pressão: bar/kPa/Pa), filtro de intervalo, ordenação e suavização opcional |
+| **Engine Setup** | geometria, operação, combustível e termodinâmica; grandezas derivadas (área do pistão, Vd, Vc, R=l/r, Vp, rev/s) e validação física dos valores |
+| **Simulation** | m, θ₀, Δθ (valores do notebook: 0.504 / −6.54° / 62°); integrador, tolerâncias e toggle de perda de calor; indicadores (P máx, T máx, RMSE, R²...) |
+| **Calibration** | PSO compatível com o notebook ou `differential_evolution`; seleção de parâmetros livres, limites por parâmetro, refinamento local opcional, progresso ao vivo e cancelamento |
+| **Results** | 9 gráficos Plotly interativos (pressão, resíduo, fração queimada, liberação de calor, temperatura, perda, volume, P-V, convergência), rad/graus, kPa/bar e tabela de resíduos |
+| **Export** | CSV completo (10 colunas), JSON de parâmetros, PNG/PDF, relatório HTML e histórico da otimização |
+
+### Comandos de execução (comentados)
+
+```powershell
+# 1) Entre na pasta da interface gráfica (irmã deste pacote)
+cd ..\combustion_gui
+
+# 2) Primeira vez: crie o ambiente virtual e instale as dependências
+python -m venv .venv                 # cria o ambiente (só na 1ª vez)
+.venv\Scripts\activate               # ativa o ambiente (Windows)
+# source .venv/bin/activate          # Linux/macOS
+pip install -r requirements.txt      # streamlit, plotly, numpy, scipy, pandas, matplotlib
+
+# 3) Inicie a interface — o navegador abre em http://localhost:8501
+streamlit run app.py
+```
+
+Em uma linha (após instalar as dependências):
+
+```powershell
+cd ..\combustion_gui ; streamlit run app.py
+```
+
+> **Dica:** para testar a GUI, carregue na aba *Experimental Data* o arquivo
+> `sample_data\P_exp-Carga-3_45%.txt` (fornecido com a GUI) — com o filtro
+> −2 ≤ θ ≤ 2 rad devem restar **459 observações**, igual à análise do
+> notebook. A calibração roda em thread separada com barra de progresso e
+> pode ser cancelada a qualquer momento sem perder resultados anteriores.
+
+Detalhes completos (telas, integração GUI ↔ modelo, tratamento de erros)
+estão em `../combustion_gui/README.md` (na sua cópia local — a pasta da GUI
+não faz parte deste repositório).
 
 ## Dados de entrada
 

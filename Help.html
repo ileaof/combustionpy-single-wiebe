@@ -102,6 +102,7 @@
     <li><a href="#inicio-rapido">Início rápido</a></li>
     <li><a href="#casos">Casos de uso passo a passo</a></li>
     <li><a href="#cli">Referência da linha de comando</a></li>
+    <li><a href="#gui">Interface gráfica (GUI — Streamlit)</a></li>
     <li><a href="#api">Uso como biblioteca</a></li>
     <li><a href="#saidas">Saídas geradas</a></li>
     <li><a href="#testes">Testes</a></li>
@@ -291,8 +292,76 @@ python run_model.py --data "C:\dados\P_exp-Carga-3_45%.txt"</code></pre>
 </section>
 
 <!-- ================================================================= -->
+<section id="gui">
+  <h2>6. Interface gráfica (GUI — Streamlit)</h2>
+
+  <p>Além da linha de comando, existe uma <b>interface gráfica completa</b>
+  na pasta irmã <code>combustion_gui/</code> (um nível acima deste pacote).
+  Ela <b>não contém equações próprias</b>: chama exatamente as funções
+  validadas deste módulo (<code>simulate_model</code>,
+  <code>calibrate_pso</code>, geometria, Hohenberg) através de um objeto
+  <code>EngineConfig</code> configurável.</p>
+
+  <h3>O que dá para fazer nela</h3>
+  <table>
+    <tr><th>Aba</th><th>Função</th></tr>
+    <tr><td><b>Experimental Data</b></td>
+        <td>importação .txt/.csv/.tsv — separador automático, escolha de
+        colunas, unidades (graus/radianos; bar/kPa/Pa), filtro de intervalo,
+        ordenação e suavização opcional (desativada por padrão)</td></tr>
+    <tr><td><b>Engine Setup</b></td>
+        <td>geometria, operação, combustível e termodinâmica com grandezas
+        derivadas calculadas (área do pistão, Vd, Vc, R=l/r, Vp, rev/s) e
+        validação física dos valores</td></tr>
+    <tr><td><b>Simulation</b></td>
+        <td>m, θ₀, Δθ (valores do notebook: 0.504 / −6.54° / 62°), opções
+        avançadas (integrador, rtol/atol, perda de calor on/off) e
+        indicadores (P máx, T máx, RMSE, R², erro do notebook)</td></tr>
+    <tr><td><b>Calibration</b></td>
+        <td>PSO compatível com o notebook ou differential_evolution;
+        seleção de parâmetros livres, limites por parâmetro, refinamento
+        local opcional, <b>progresso ao vivo</b> e botão de cancelamento</td></tr>
+    <tr><td><b>Results</b></td>
+        <td>9 gráficos interativos (Plotly): pressão, resíduo, fração
+        queimada, liberação de calor, temperatura, perda, volume, diagrama
+        P-V e convergência; alterna rad/graus e kPa/bar; tabela de resíduos</td></tr>
+    <tr><td><b>Export</b></td>
+        <td>CSV completo (10 colunas), JSON de parâmetros, gráficos PNG/PDF,
+        relatório HTML autocontido e histórico da otimização</td></tr>
+  </table>
+
+  <h3>Comandos de execução (comentados)</h3>
+<pre><code class="prompt">cd ..\combustion_gui        <span style="color:#9aa3b0"># 1) entra na pasta da interface (irmã deste pacote)</span>
+python -m venv .venv        <span style="color:#9aa3b0"># 2) primeira vez: cria o ambiente virtual</span>
+.venv\Scripts\activate      <span style="color:#9aa3b0">#    ativa o ambiente (Windows)</span>
+pip install -r requirements.txt
+                            <span style="color:#9aa3b0">#    streamlit, plotly, numpy, scipy, pandas...</span>
+streamlit run app.py        <span style="color:#9aa3b0"># 3) inicia a GUI — navegador abre em localhost:8501</span></code></pre>
+
+  <p>Linux/macOS: substitua <code>.venv\Scripts\activate</code> por
+  <code>source .venv/bin/activate</code>.</p>
+
+  <p>Em uma linha (com dependências já instaladas):</p>
+<pre><code class="prompt">cd ..\combustion_gui ; streamlit run app.py</code></pre>
+
+  <div class="box ok"><b>✔ Teste rápido:</b> na aba <i>Experimental Data</i>,
+  carregue <code>sample_data\P_exp-Carga-3_45%.txt</code> (fornecido com a
+  GUI) — com o filtro −2 ≤ θ ≤ 2 rad devem restar <b>459 observações</b>,
+  igual à análise do notebook.</div>
+
+  <div class="box warn"><b>⚠ Erro comum:</b> <code>Error: Invalid value: File
+  does not exist: app.py</code> significa que você executou o comando da
+  pasta errada (p. ex. em <code>single_wiebe\</code>). O <code>app.py</code>
+  está em <code>combustion_gui\</code> — use o
+  <code>cd ..\combustion_gui</code> acima antes.</div>
+
+  <p>Documentação completa da GUI (telas, integração, tratamento de erros):
+  <code>combustion_gui/README.md</code>.</p>
+</section>
+
+<!-- ================================================================= -->
 <section id="api">
-  <h2>6. Uso como biblioteca (<code>single_wiebe.py</code>)</h2>
+  <h2>7. Uso como biblioteca (<code>single_wiebe.py</code>)</h2>
 
   <table>
     <tr><th>Função</th><th>Assinatura</th><th>Retorno</th></tr>
@@ -344,7 +413,7 @@ python run_model.py --data "C:\dados\P_exp-Carga-3_45%.txt"</code></pre>
 
 <!-- ================================================================= -->
 <section id="saidas">
-  <h2>7. Saídas geradas (<code>results/</code>)</h2>
+  <h2>8. Saídas geradas (<code>results/</code>)</h2>
 
   <h3>Gráficos</h3>
   <p>As <b>quatro primeiras figuras replicam os gráficos do notebook/PDF</b>
@@ -388,7 +457,7 @@ temperature_K; heat_loss_J; burned_fraction; dQ_dtheta_kJ_per_rad</code></pre>
 
 <!-- ================================================================= -->
 <section id="testes">
-  <h2>8. Testes</h2>
+  <h2>9. Testes</h2>
 <pre><code class="prompt">python -m pytest tests/ -v        # recomendado
 python tests/test_model.py        # alternativa sem pytest</code></pre>
   <p>15 testes cobrem: leitura dos 503/459 pontos, geometria (PMS/PMI, derivada
@@ -399,7 +468,7 @@ python tests/test_model.py        # alternativa sem pytest</code></pre>
 
 <!-- ================================================================= -->
 <section id="solucao-problemas">
-  <h2>9. Solução de problemas</h2>
+  <h2>10. Solução de problemas</h2>
 
   <table>
     <tr><th>Sintoma</th><th>Causa provável</th><th>Solução</th></tr>
