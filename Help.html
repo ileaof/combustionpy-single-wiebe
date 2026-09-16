@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ajuda — Modelo Single Wiebe em Python</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #ffffff; --ink: #1d2430; --muted: #5b6472;
+    --accent: #0b62d6; --accent-soft: #e8f1fd; --border: #dfe3ea;
+    --code-bg: #f0f2f5; --ok: #0a7d38; --ok-soft: #e7f5ec;
+    --warn: #9a6700; --warn-soft: #fff4d6;
+    color-scheme: light dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171c; --card: #1c2129; --ink: #e6e9ee; --muted: #9aa3b0;
+      --accent: #5ea1f5; --accent-soft: #1d2c40; --border: #2c333d;
+      --code-bg: #232a33; --ok: #4cc47e; --ok-soft: #17301f;
+      --warn: #d9a62e; --warn-soft: #33290f;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 15px/1.65 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    padding: 24px 16px 64px;
+  }
+  main { max-width: 900px; margin: 0 auto; }
+  header.hero {
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    padding: 28px 28px 20px; margin-bottom: 24px;
+  }
+  h1 { margin: 0 0 6px; font-size: 26px; }
+  .hero p { margin: 0; color: var(--muted); }
+  h2 {
+    font-size: 20px; margin: 36px 0 12px; padding-bottom: 6px;
+    border-bottom: 2px solid var(--border);
+  }
+  h3 { font-size: 16px; margin: 22px 0 8px; }
+  section {
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    padding: 8px 28px 20px; margin-bottom: 18px;
+  }
+  code {
+    font-family: Consolas, "Cascadia Code", Menlo, monospace;
+    background: var(--code-bg); border-radius: 5px; padding: 1px 6px;
+    font-size: 13px;
+  }
+  pre {
+    background: #000000; color: #ffffff; border: 1px solid #333333;
+    border-radius: 8px; padding: 14px 16px; overflow-x: auto;
+    font-size: 13px; line-height: 1.55;
+  }
+  pre code { background: none; padding: 0; color: #ffffff; }
+  .prompt::before { content: "PS> "; color: #9aa3b0; user-select: none; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; margin: 10px 0; }
+  th, td { border: 1px solid var(--border); padding: 7px 10px; text-align: left; vertical-align: top; }
+  th { background: var(--accent-soft); }
+  .box {
+    border-radius: 8px; padding: 12px 16px; margin: 14px 0;
+    border: 1px solid var(--border); font-size: 14px;
+  }
+  .box.ok { background: var(--ok-soft); border-color: var(--ok); }
+  .box.warn { background: var(--warn-soft); border-color: var(--warn); }
+  .box b:first-child { display: inline-block; margin-right: 6px; }
+  nav.toc {
+    background: var(--accent-soft); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px 24px; margin-bottom: 24px;
+  }
+  nav.toc h2 { border: none; margin: 0 0 8px; font-size: 16px; }
+  nav.toc ol { margin: 0; padding-left: 22px; columns: 2; }
+  nav.toc a { color: var(--accent); text-decoration: none; }
+  nav.toc a:hover { text-decoration: underline; }
+  kbd {
+    background: var(--code-bg); border: 1px solid var(--border); border-bottom-width: 2px;
+    border-radius: 4px; padding: 0 5px; font-size: 12px; font-family: inherit;
+  }
+  .tag {
+    display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: .4px;
+    border-radius: 20px; padding: 1px 9px; margin-left: 8px; vertical-align: 2px;
+  }
+  .tag.req { background: var(--warn-soft); color: var(--warn); }
+  .tag.opt { background: var(--ok-soft); color: var(--ok); }
+  @media (max-width: 640px) { nav.toc ol { columns: 1; } section { padding: 6px 18px 16px; } }
+</style>
+</head>
+<body>
+<main>
+
+<header class="hero">
+  <h1>🔧 Ajuda — Modelo Single Wiebe (Python)</h1>
+  <p>Como rodar os casos (validação, calibração, gráficos, exportações) da conversão
+  do notebook Mathematica <code>Modelo_Single_Wiebe_v1.nb</code> para Python 3.</p>
+</header>
+
+<nav class="toc">
+  <h2>Sumário</h2>
+  <ol>
+    <li><a href="#requisitos">Requisitos e instalação</a></li>
+    <li><a href="#estrutura">Estrutura do projeto</a></li>
+    <li><a href="#inicio-rapido">Início rápido</a></li>
+    <li><a href="#casos">Casos de uso passo a passo</a></li>
+    <li><a href="#cli">Referência da linha de comando</a></li>
+    <li><a href="#api">Uso como biblioteca</a></li>
+    <li><a href="#saidas">Saídas geradas</a></li>
+    <li><a href="#testes">Testes</a></li>
+    <li><a href="#solucao-problemas">Solução de problemas</a></li>
+  </ol>
+</nav>
+
+<!-- ================================================================= -->
+<section id="requisitos">
+  <h2>1. Requisitos e instalação</h2>
+
+  <ul>
+    <li>Python <b>3.9 ou superior</b> (testado com 3.11).</li>
+    <li>Pacotes <span class="tag req">obrigatórios</span>:
+      <code>numpy</code>, <code>scipy</code>, <code>matplotlib</code>.</li>
+    <li>Pacote <span class="tag opt">opcional</span>:
+      <code>pandas</code> (análise dos CSVs) e <code>pytest</code> (testes).</li>
+  </ul>
+
+  <h3>Windows (PowerShell) — ambiente virtual</h3>
+<pre><code class="prompt">cd caminho\para\Larissa\single_wiebe
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt</code></pre>
+
+  <h3>Linux / macOS</h3>
+<pre><code>cd caminho/para/Larissa/single_wiebe
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt</code></pre>
+
+  <div class="box warn"><b>⚠ Importante:</b> o arquivo de dados
+  <code>P_exp-Carga-3_45%.txt</code> deve permanecer na pasta <b>pai</b> do pacote
+  (<code>Larissa/</code>). Se ele estiver em outro lugar, passe o caminho com
+  <code>--data</code> (ver <a href="#cli">seção 5</a>).</div>
+</section>
+
+<!-- ================================================================= -->
+<section id="estrutura">
+  <h2>2. Estrutura do projeto</h2>
+<pre><code>single_wiebe/
+├── single_wiebe.py      # biblioteca: geometria, Wiebe, Hohenberg, EDOs, PSO, DE, plots, export
+├── run_model.py         # script principal (CLI): valida → calibra → plota → exporta
+├── requirements.txt
+├── README.md            # documentação detalhada (física, unidades, diferenças Mathematica×SciPy)
+├── Help.html            # este arquivo de ajuda
+├── results/             # gráficos (.png) e tabelas (.csv) gerados
+└── tests/
+    └── test_model.py    # 15 testes (geometria, Wiebe, dados, validação 409.385 kPa)</code></pre>
+
+  <table>
+    <tr><th>Arquivo</th><th>O que faz</th></tr>
+    <tr><td><code>single_wiebe.py</code></td>
+        <td>Biblioteca. Contém <code>load_experimental</code>, <code>simulate_model</code>,
+        <code>calibrate_pso</code> (compatível com o notebook),
+        <code>calibrate_de</code> (alternativo), <code>simulate_full</code>,
+        <code>make_plots</code> e as exportações.</td></tr>
+    <tr><td><code>run_model.py</code></td>
+        <td>Orquestra tudo pela linha de comando. Não precisa importar nada manualmente.</td></tr>
+    <tr><td><code>results/</code></td>
+        <td>Criada automaticamente na primeira execução.</td></tr>
+  </table>
+</section>
+
+<!-- ================================================================= -->
+<section id="inicio-rapido">
+  <h2>3. Início rápido</h2>
+
+  <p>Um único comando roda o fluxo completo — validação do caso de referência
+  do notebook, calibração por PSO (compatível com o Mathematica), calibração
+  alternativa por <i>differential evolution</i>, os 9 gráficos e os 2 CSVs:</p>
+
+<pre><code class="prompt">python run_model.py</code></pre>
+
+  <div class="box ok"><b>✔ Resultado esperado (≈ 15 min):</b>
+  <ul style="margin:6px 0 0;">
+    <li>Validação: <b>erro = 409.385649 kPa</b> (referência do notebook: 409.385 kPa, Δ ≈ +0.00016%);</li>
+    <li>PSO (seed 42): <b>erro ≈ 63.8468 kPa</b> em ~150 iterações (~2 min);</li>
+    <li>DE: mesmo ótimo ≈ 63.8468 kPa (~13 min);</li>
+    <li>9 PNGs + 2 CSVs em <code>results/</code>.</li>
+  </ul></div>
+
+  <p>Execuções mais rápidas:</p>
+<pre><code class="prompt">python run_model.py --skip-de      # só validação + PSO  (~3 min)
+python run_model.py --skip-pso     # só validação + DE
+python run_model.py --skip-pso --skip-de   # só validação (~2 s)</code></pre>
+</section>
+
+<!-- ================================================================= -->
+<section id="casos">
+  <h2>4. Casos de uso passo a passo</h2>
+
+  <h3>4.1 — Reproduzir o caso de validação do notebook
+      <span class="tag req">essencial</span></h3>
+  <p>Reproduz o erro <b>409.385 kPa</b> para <code>Rc=17</code>,
+  <code>m=0.504</code>, <code>θ₀=−6.54°</code>, <code>Δθ=62°</code>:</p>
+<pre><code class="prompt">python run_model.py --skip-pso --skip-de</code></pre>
+  <p>ou, programaticamente:</p>
+<pre><code>import numpy as np
+import single_wiebe as sw
+
+data = sw.load_experimental("../P_exp-Carga-3_45%.txt")
+erro, P_sim, Tg_sim, Qp_sim = sw.simulate_model(
+    Rc=17.0, m=0.504,
+    theta0=np.radians(-6.54), delta_theta=np.radians(62.0),
+    theta_exp=data["theta"], pressure_exp=data["pressure"],
+)
+print(erro)   # 409.385649...</code></pre>
+
+  <h3>4.2 — Calibrar Rc, m, θ₀ e Δθ</h3>
+<pre><code class="prompt"># PSO compatível com o notebook (20 partículas, beta=2, até 800 iterações)
+python run_model.py --seed 42 --skip-de
+
+# Método alternativo robusto (SciPy differential_evolution)
+python run_model.py --seed 42 --skip-pso</code></pre>
+  <p>O PSO é estocástico: mudar <code>--seed</code> muda a trajetória, mas o
+  erro converge para ≈ 63.85 kPa e o ótimo tende à borda do domínio
+  (<code>θ₀ = 2°</code>, <code>Δθ = 40°</code>), como no Mathematica
+  (referência: erro 63.8473 kPa com Rc=15.8686, m=0.524544).</p>
+
+  <h3>4.3 — Gerar gráficos e CSVs com parâmetros próprios</h3>
+<pre><code>import numpy as np
+import single_wiebe as sw
+
+data = sw.load_experimental("../P_exp-Carga-3_45%.txt")
+res = sw.simulate_full(
+    Rc=16.0, m=0.55,
+    theta0=np.radians(0.0), delta_theta=np.radians(50.0),
+    theta_exp=data["theta"], pressure_exp=data["pressure"],
+)
+print("erro =", res.erro, "kPa")
+sw.make_plots(res, outdir="results", data=data)  # 9 PNGs
+sw.export_csv(res, outdir="results")          # CSV principal
+sw.export_pressure_degrees_bar(               # grade em graus/bar (~0.34°)
+    16.0, 0.55, np.radians(0.0), np.radians(50.0),
+    theta_i=data["theta"][0], theta_f=data["theta"][-1],
+    P1=data["P1"], outdir="results",
+)</code></pre>
+
+  <h3>4.4 — Verificar a qualidade dos dados carregados</h3>
+<pre><code>data = sw.load_experimental("../P_exp-Carga-3_45%.txt")
+print(data["n_total"])      # 503 linhas do arquivo
+print(data["n_filtered"])   # 459 após o filtro -2 ≤ θ ≤ 2 rad
+print(data["theta_i"], data["theta_f"])  # -1.998401994  1.998401994 rad
+print(data["P1"])           # 138.2 kPa (pressão no IVC)</code></pre>
+  <p>Se as contagens divergirem de 503/459, a função levanta
+  <code>ValueError</code> — isso protege contra arquivos errados.</p>
+</section>
+
+<!-- ================================================================= -->
+<section id="cli">
+  <h2>5. Referência da linha de comando (<code>run_model.py</code>)</h2>
+
+  <table>
+    <tr><th>Opção</th><th>Padrão</th><th>Descrição</th></tr>
+    <tr><td><code>--data CAMINHO</code></td>
+        <td><code>..\P_exp-Carga-3_45%.txt</code></td>
+        <td>Arquivo experimental (colunas: θ [rad], P [bar]).</td></tr>
+    <tr><td><code>--seed N</code></td>
+        <td><code>42</code></td>
+        <td>Semente aleatória do PSO e do DE (reprodutibilidade).</td></tr>
+    <tr><td><code>--iters N</code></td>
+        <td><code>800</code></td>
+        <td>Sobrescreve o máximo de iterações do PSO.</td></tr>
+    <tr><td><code>--skip-pso</code></td>
+        <td>—</td>
+        <td>Não executa a calibração PSO.</td></tr>
+    <tr><td><code>--skip-de</code></td>
+        <td>—</td>
+        <td>Não executa o <i>differential evolution</i>.</td></tr>
+    <tr><td><code>--outdir PASTA</code></td>
+        <td><code>results/</code></td>
+        <td>Diretório de saída dos gráficos e CSVs.</td></tr>
+    <tr><td><code>--quiet</code></td>
+        <td>—</td>
+        <td>Suprime o log iteração-a-iteração do PSO.</td></tr>
+  </table>
+
+  <h3>Exemplos combinados</h3>
+<pre><code class="prompt"># varredura de sementes só com PSO
+python run_model.py --skip-de --seed 1
+python run_model.py --skip-de --seed 2 --quiet
+python run_model.py --skip-de --seed 3 --quiet
+
+# dados em outra pasta
+python run_model.py --data "C:\dados\P_exp-Carga-3_45%.txt"</code></pre>
+</section>
+
+<!-- ================================================================= -->
+<section id="api">
+  <h2>6. Uso como biblioteca (<code>single_wiebe.py</code>)</h2>
+
+  <table>
+    <tr><th>Função</th><th>Assinatura</th><th>Retorno</th></tr>
+    <tr><td><code>load_experimental</code></td>
+        <td><code>(path)</code></td>
+        <td><code>dict</code> com <code>theta</code> (rad), <code>pressure</code>
+        (kPa), <code>P1</code>, <code>theta_i</code>, <code>theta_f</code> e contagens.</td></tr>
+    <tr><td><code>simulate_model</code></td>
+        <td><code>(Rc, m, theta0, delta_theta, theta_exp, pressure_exp)</code></td>
+        <td><code>(erro, P_sim, Tg_sim, Qp_sim)</code>. Em caso de falha:
+        <code>(1e10, None, None, None)</code> (penalidade, sem exceção).</td></tr>
+    <tr><td><code>simulate_full</code></td>
+        <td>mesmos parâmetros</td>
+        <td><code>ModelResult</code> com <code>x_b</code>, <code>dQ_dtheta</code>
+        e tudo pronto para plots/export.</td></tr>
+    <tr><td><code>calibrate_pso</code></td>
+        <td><code>(theta_exp, pressure_exp, seed=..., ...)</code></td>
+        <td><code>dict</code> com <code>params</code>, <code>erro</code>,
+        <code>history</code> e sinalização de parada por repetição.</td></tr>
+    <tr><td><code>calibrate_de</code></td>
+        <td><code>(theta_exp, pressure_exp, seed=...)</code></td>
+        <td><code>dict</code> análogo, via <code>scipy.optimize.differential_evolution</code>.</td></tr>
+    <tr><td><code>burned_fraction</code></td>
+        <td><code>(theta, theta0, delta_theta, m)</code></td>
+        <td><code>(x_b, dx_b/dtheta)</code> — modo compatibilidade (sem truncamento).</td></tr>
+    <tr><td><code>compute_error</code></td>
+        <td><code>(P_exp, P_sim)</code></td>
+        <td><code>sqrt(SSres/(q−2))</code> — definição do notebook.</td></tr>
+  </table>
+
+  <h3>Constantes editáveis (topo do arquivo)</h3>
+  <table>
+    <tr><th>Constante</th><th>Valor</th><th>Significado</th></tr>
+    <tr><td><code>KAPPA</code></td><td>1.37</td><td>razão de capacidades caloríficas</td></tr>
+    <tr><td><code>TW</code></td><td>440 K</td><td>temperatura da parede</td></tr>
+    <tr><td><code>T1</code></td><td>308.15 K</td><td>temperatura no IVC</td></tr>
+    <tr><td><code>M_COMB</code></td><td>9.42754647351e-6 kg</td><td>massa de combustível por ciclo</td></tr>
+    <tr><td><code>PCI</code></td><td>39191.3 kJ/kg</td><td>poder calorífico inferior</td></tr>
+    <tr><td><code>A_WIEBE</code></td><td>6.9078</td><td>eficiência da combustão (Wiebe)</td></tr>
+    <tr><td><code>RTOL/ATOL</code></td><td>1e-9</td><td>tolerâncias do <code>solve_ivp</code></td></tr>
+    <tr><td><code>PENALTY</code></td><td>1e10</td><td>valor da função objetivo em falhas</td></tr>
+  </table>
+
+  <div class="box warn"><b>⚠ Unidades:</b> θ em <b>rad</b>, P em <b>kPa</b>,
+  temperaturas em <b>K</b>, <code>omega</code> em <b>rotações/segundo</b>
+  (<code>rpm/60</code>), <code>dQ/dθ</code> em <b>kJ/rad</b>, <code>Qp</code>
+  em <b>J</b>. Não altere essas escalas — o modo de compatibilidade depende delas.</div>
+</section>
+
+<!-- ================================================================= -->
+<section id="saidas">
+  <h2>7. Saídas geradas (<code>results/</code>)</h2>
+
+  <h3>Gráficos</h3>
+  <p>As <b>quatro primeiras figuras replicam os gráficos do notebook/PDF</b>
+  (<code>GrafPall</code>, <code>GrafPbar</code>, <code>GrafPExp</code> e
+  <code>Show[GrafPExp, GrafPSim]</code>), no mesmo estilo: experimental em
+  marcadores <span style="color:#d62728">"+" vermelhos</span> e simulada em
+  <span style="color:#2ca02c">linha verde contínua</span>.</p>
+  <table>
+    <tr><th>Arquivo</th><th>Conteúdo</th></tr>
+    <tr><td><code>01_pressao_exp_bruta_kpa_rad.png</code></td>
+        <td><b>GrafPall</b> — todos os 503 pontos brutos (kPa × rad)</td></tr>
+    <tr><td><code>02_pressao_exp_filtrada_bar_rad.png</code></td>
+        <td><b>GrafPbar</b> — dados filtrados (−2 ≤ θ ≤ 2) em bar</td></tr>
+    <tr><td><code>03_pressao_exp_filtrada_kpa_rad.png</code></td>
+        <td><b>GrafPExp</b> — dados filtrados em kPa, marcadores "+" vermelhos</td></tr>
+    <tr><td><code>04_pressao_exp_sim_kpa_rad.png</code></td>
+        <td><b>Show[GrafPExp, GrafPSim]</b> — experimental ("+") × simulada
+        (linha verde), com o erro no título</td></tr>
+    <tr><td><code>05_fracao_queimada.png</code></td><td>fração queimada <code>x_b</code></td></tr>
+    <tr><td><code>06_dQ_dtheta_kJ_rad.png</code></td>
+        <td><b>GrafdQdθ</b> — taxa de liberação de calor (kJ/rad), linha verde</td></tr>
+    <tr><td><code>07_temperatura_gas.png</code></td><td>temperatura do gás (K)</td></tr>
+    <tr><td><code>08_calor_perdido.png</code></td><td>calor perdido acumulado (Hohenberg)</td></tr>
+    <tr><td><code>09_convergencia.png</code></td><td>convergência da função objetivo</td></tr>
+  </table>
+  <p>Todos os eixos de ângulo estão em <b>radianos</b> (rotulagem corrigida em
+  relação ao notebook original, que citava graus por engano).</p>
+
+  <h3>Tabelas</h3>
+  <p><code>resultados_simulacao.csv</code> (separador <code>;</code>), 459 linhas:</p>
+<pre><code>theta_rad; theta_deg; pressure_exp_kPa; pressure_sim_kPa;
+temperature_K; heat_loss_J; burned_fraction; dQ_dtheta_kJ_per_rad</code></pre>
+  <p><code>pressao_simulada_graus_bar.csv</code> — pressão simulada em graus e
+  bar com passo ≈ 0.34° (equivalente à exportação original do notebook).</p>
+
+  <div class="box ok"><b>✔ Nota:</b> <code>heat_loss_J</code> pode ser
+  levemente <b>negativo</b> no início: com <code>Tg (≈308 K) &lt; Tw (440 K)</code>
+  no IVC, o fluxo de calor inicial é das paredes para o gás — comportamento
+  fiel ao modelo original.</div>
+</section>
+
+<!-- ================================================================= -->
+<section id="testes">
+  <h2>8. Testes</h2>
+<pre><code class="prompt">python -m pytest tests/ -v        # recomendado
+python tests/test_model.py        # alternativa sem pytest</code></pre>
+  <p>15 testes cobrem: leitura dos 503/459 pontos, geometria (PMS/PMI, derivada
+  analítica × numérica), Wiebe (guarda em θ&lt;θ₀, derivada, não-truncamento),
+  dimensões e NaN das saídas, condições iniciais, o caso de validação
+  409.385 kPa e a penalidade para parâmetros não físicos.</p>
+</section>
+
+<!-- ================================================================= -->
+<section id="solucao-problemas">
+  <h2>9. Solução de problemas</h2>
+
+  <table>
+    <tr><th>Sintoma</th><th>Causa provável</th><th>Solução</th></tr>
+    <tr><td><code>ValueError: Esperadas 503 observações…</code></td>
+        <td>Arquivo de dados errado ou modificado.</td>
+        <td>Conferir <code>--data</code>; usar o arquivo original.</td></tr>
+    <tr><td>Validação não dá 409.385 kPa</td>
+        <td>Dados/tolerâncias alterados.</td>
+        <td>Ver <code>README.md</code> (seção "Diferenças esperadas");
+        tolerâncias em <code>RTOL/ATOL_DEFAULT</code>.</td></tr>
+    <tr><td>PSO lento (&gt;5 min)</td>
+        <td>800 iterações × 20 partículas.</td>
+        <td>Normal; costuma parar antes (~150 it.) por estagnação.
+        Reduza com <code>--iters 300</code>.</td></tr>
+    <tr><td><code>erro = 10000000000.0</code></td>
+        <td>Parâmetros não físicos → integração falhou.</td>
+        <td>Esperado (penalidade); a otimização continua.</td></tr>
+    <tr><td><code>ModuleNotFoundError: single_wiebe</code></td>
+        <td>Rodando de fora da pasta do pacote.</td>
+        <td><code>cd single_wiebe</code> antes, ou adicione a pasta ao
+        <code>PYTHONPATH</code>.</td></tr>
+    <tr><td>Caracteres acentuados estranhos no console</td>
+        <td>Código de página do Windows (cp1252).</td>
+        <td><code>set PYTHONIOENCODING=utf-8</code> (cmd) ou
+        <code>$env:PYTHONIOENCODING="utf-8"</code> (PowerShell).</td></tr>
+    <tr><td>Matplotlib não abre janelas</td>
+        <td>Por design usa backend <code>Agg</code>.</td>
+        <td>Os gráficos são salvos em <code>results/</code> — abra os PNGs.</td></tr>
+  </table>
+
+  <h3>Perguntas frequentes</h3>
+  <p><b>Por que o divisor do erro é <code>q − 2</code>?</b><br>
+  É a definição exata do notebook (<code>Sqrt[SSres/(q−2.)]</code>), mesmo com
+  4 parâmetros ajustados. Mantida por fidelidade — ver comentário em
+  <code>compute_error</code>.</p>
+  <p><b>Posso interpolar a solução?</b><br>
+  Não é necessário: <code>solve_ivp(t_eval=theta_exp)</code> já devolve a
+  solução exatamente nos ângulos experimentais.</p>
+  <p><b>Como rodar em Jupyter?</b><br>
+  <code>from single_wiebe import *</code> com o notebook na pasta
+  <code>single_wiebe/</code>, ou instale o pacote no <code>sys.path</code>.
+  Depois siga os exemplos da seção 6.</p>
+</section>
+
+<p style="text-align:center;color:var(--muted);font-size:13px;margin-top:28px;">
+Modelo Single Wiebe — conversão Python do notebook Mathematica · documentação de ajuda</p>
+
+</main>
+</body>
+</html>

@@ -1,0 +1,10 @@
+# Ambiente Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Artefatos do sistema
+.DS_Store
+Thumbs.db
