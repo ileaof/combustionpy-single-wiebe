@@ -24,6 +24,13 @@ implementado originalmente em Wolfram Mathematica
 > passo a passo de instalação, casos de uso, CLI, troubleshooting e FAQ.
 > Este README contém a documentação técnica completa.
 
+![Pressão simulada × experimental](results/04_pressao_exp_sim_kpa_rad.png)
+
+*Figura — Pressão simulada (linha verde, Single Wiebe) × experimental
+(marcadores "+") em função do ângulo do virabrequim, com os parâmetros
+calibrados (PSO/DE, erro = 63.847 kPa). O mesmo estilo do notebook
+Mathematica original: `Show[GrafPExp, GrafPSim]`.*
+
 ---
 
 ## Sumário
