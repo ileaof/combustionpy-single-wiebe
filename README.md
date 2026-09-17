@@ -39,21 +39,22 @@ Mathematica original: `Show[GrafPExp, GrafPSim]`.*
 2. [Instalação](#instalação)
 3. [Execução rápida](#execução-rápida)
 4. [Interface gráfica (GUI — Streamlit)](#interface-gráfica-gui--streamlit)
-5. [Dados de entrada](#dados-de-entrada)
-6. [Formulação matemática](#formulação-matemática)
-7. [Constantes do motor](#constantes-do-motor)
-8. [Parâmetros de calibração](#parâmetros-de-calibração)
-9. [Sistema de unidades](#sistema-de-unidades)
-10. [Método numérico](#método-numérico)
-11. [Calibração](#calibração)
-12. [Referência da API](#referência-da-api)
-13. [Saídas geradas](#saídas-geradas)
-14. [Resultados de validação e calibração](#resultados-de-validação-e-calibração)
-15. [Particularidades do notebook original](#particularidades-do-notebook-original)
-16. [Diferenças Mathematica × SciPy](#diferenças-mathematica--scipy)
-17. [Testes](#testes)
-18. [Solução de problemas](#solução-de-problemas)
-19. [Referências](#referências)
+5. [Double Wiebe — análise bifásica (extensão)](#double-wiebe--análise-bifásica-extensão)
+6. [Dados de entrada](#dados-de-entrada)
+7. [Formulação matemática](#formulação-matemática)
+8. [Constantes do motor](#constantes-do-motor)
+9. [Parâmetros de calibração](#parâmetros-de-calibração)
+10. [Sistema de unidades](#sistema-de-unidades)
+11. [Método numérico](#método-numérico)
+12. [Calibração](#calibração)
+13. [Referência da API](#referência-da-api)
+14. [Saídas geradas](#saídas-geradas)
+15. [Resultados de validação e calibração](#resultados-de-validação-e-calibração)
+16. [Particularidades do notebook original](#particularidades-do-notebook-original)
+17. [Diferenças Mathematica × SciPy](#diferenças-mathematica--scipy)
+18. [Testes](#testes)
+19. [Solução de problemas](#solução-de-problemas)
+20. [Referências](#referências)
 
 ---
 
@@ -189,6 +190,77 @@ cd combustion_gui ; streamlit run app.py
 
 Detalhes completos (telas, integração GUI ↔ modelo, tratamento de erros)
 estão em [`combustion_gui/README.md`](combustion_gui/README.md).
+
+## Double Wiebe — análise bifásica (extensão)
+
+O **Double Wiebe Combustion Analysis** é a extensão bifásica deste projeto:
+duas funções de Wiebe (fase 1 pré-misturada, fase 2 controlada por difusão)
+ponderadas por `alpha`, acopladas ao mesmo modelo termodinâmico de zona única
+com transferência de calor de Hohenberg. É um pacote instalável, com CLI
+própria (`double-wiebe`) e GUI Streamlit, em `../double_wiebe/` (pasta irmã
+deste repositório).
+
+> *This combustion simulation employs a double Wiebe function and extends
+> the single Wiebe model developed as part of L. Queiroz's M.Sc. thesis
+> under the supervision of Prof. I. L. Ferreira.*
+
+Com `alpha = 1` (ou 0) e fases idênticas, o Double Wiebe reduz-se exatamente
+à Single Wiebe — propriedade verificada analiticamente em
+`double_wiebe/tests/test_wiebe.py` —, o que torna os dois modelos comparáveis
+diretamente sobre o mesmo experimento.
+
+### Como iniciar uma análise de Double Wiebe
+
+```bash
+cd ../double_wiebe
+pip install -e .                # instala o pacote e o comando `double-wiebe`
+double-wiebe --help             # verificação rápida
+```
+
+1. **Dados experimentais** — arquivo texto com duas colunas numéricas
+   (ângulo, pressão); ângulo em radianos ou graus, pressão em Pa/kPa/bar.
+   Exemplo incluído: `data/example_pressure.txt` (θ em rad, P em bar).
+2. **Configuração** — gere um YAML comentado e edite as seções `data`,
+   `engine`, `wiebe`, `simulation` e `calibration` (ângulos em graus no
+   YAML; internamente em radianos):
+
+   ```bash
+   double-wiebe example-config configs/meu_config.yaml
+   ```
+
+3. **Simular** (sobrescritas rápidas com `--set`, repetíveis):
+
+   ```bash
+   double-wiebe simulate --data data/example_pressure.txt        --config configs/example.yaml --output outputs/run_01
+   # exemplo de sobrescrita:
+   double-wiebe simulate --data data/exemplo.txt        --set wiebe.alpha=0.4 --set engine.Rc=17.0 --output outputs/run_02
+   ```
+
+4. **Calibrar** (busca global + refinamento least-squares + sensibilidade):
+
+   ```bash
+   double-wiebe calibrate --data data/example_pressure.txt        --config configs/example.yaml        --method differential-evolution --seed 42        --select theta01,delta1,alpha --output outputs/calib_01
+   ```
+
+   Métodos: `differential-evolution`, `pso`, `least-squares`.
+   Códigos de saída: 0 ok · 1 falha de execução · 2 entrada inválida.
+   **Não calibre os 10 parâmetros de uma vez** — comece com 2–4
+   parâmetros identificados e observe os alertas de
+   identificabilidade/bordas.
+
+5. **Interface gráfica** (7 abas; mesmo núcleo da CLI):
+
+   ```bash
+   double-wiebe gui
+   ```
+
+6. **Exportações** por execução: `results.csv` (14 colunas),
+   `parameters.yaml`, `metrics.json`, `convergence.csv`,
+   `pressure_comparison.png/.pdf`, `heat_release.png`,
+   `burned_fraction.png` e `report.html` (autocontido).
+
+Documentação completa (modelo, unidades, limitações, testes):
+`double_wiebe/README.md`.
 
 ## Dados de entrada
 

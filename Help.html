@@ -103,6 +103,7 @@
     <li><a href="#casos">Casos de uso passo a passo</a></li>
     <li><a href="#cli">Referência da linha de comando</a></li>
     <li><a href="#gui">Interface gráfica (GUI — Streamlit)</a></li>
+    <li><a href="#double-wiebe">Double Wiebe — como iniciar uma análise</a></li>
     <li><a href="#api">Uso como biblioteca</a></li>
     <li><a href="#saidas">Saídas geradas</a></li>
     <li><a href="#testes">Testes</a></li>
@@ -365,8 +366,76 @@ streamlit run app.py        <span style="color:#9aa3b0"># 3) inicia a GUI — na
 </section>
 
 <!-- ================================================================= -->
+<section id="double-wiebe">
+  <h2>7. Double Wiebe — como iniciar uma análise</h2>
+
+  <p>O <b>Double Wiebe Combustion Analysis</b> é a extensão bifásica deste
+  projeto: duas funções de Wiebe (fase 1 pré-misturada, fase 2 controlada
+  por difusão) ponderadas por <code>alpha</code>, acopladas ao mesmo modelo
+  termodinâmico de zona única com Hohenberg. Está em
+  <code>../double_wiebe/</code> (pasta irmã deste repositório) e é um
+  pacote instalável com CLI própria (<code>double-wiebe</code>) e GUI
+  Streamlit.</p>
+
+  <div class="okbox">✔ <b>Redução garantida:</b> com <code>alpha = 1</code>
+  (ou 0) e fases idênticas o Double Wiebe reproduz exatamente a Single
+  Wiebe — verificado analiticamente em
+  <code>double_wiebe/tests/test_wiebe.py</code>.</div>
+
+  <h3>Passo a passo</h3>
+  <ol>
+    <li><b>Instalar</b> (Python 3.11+):
+      <pre><code>cd ..\double_wiebe
+pip install -e .          # instala o pacote e o comando `double-wiebe`
+double-wiebe --help</code></pre>
+    </li>
+    <li><b>Dados experimentais</b> — arquivo texto com duas colunas
+      numéricas (ângulo, pressão); ângulo em rad ou graus, pressão em
+      Pa/kPa/bar. Exemplo: <code>data/example_pressure.txt</code>
+      (θ em rad, P em bar).</li>
+    <li><b>Configuração</b> — gere um YAML comentado e edite:
+      <pre><code>double-wiebe example-config configs/meu_config.yaml</code></pre>
+      Seções: <code>data</code>, <code>engine</code>, <code>wiebe</code>,
+      <code>simulation</code>, <code>calibration</code> (ângulos em graus
+      no YAML; internamente em radianos).</li>
+    <li><b>Simular</b>:
+      <pre><code>double-wiebe simulate --data data/example_pressure.txt ^
+    --config configs/example.yaml --output outputs/run_01</code></pre>
+      Sobrescritas rápidas sem editar o YAML (repetíveis):
+      <code>--set wiebe.alpha=0.4 --set engine.Rc=17.0</code>.</li>
+    <li><b>Calibrar</b> (busca global + refinamento least-squares):
+      <pre><code>double-wiebe calibrate --data data/example_pressure.txt ^
+    --config configs/example.yaml ^
+    --method differential-evolution --seed 42 ^
+    --select theta01,delta1,alpha --output outputs/calib_01</code></pre>
+      Métodos: <code>differential-evolution</code>, <code>pso</code>,
+      <code>least-squares</code>. Códigos de saída: 0 ok · 1 falha ·
+      2 entrada inválida.</li>
+    <li><b>GUI</b>:
+      <pre><code>double-wiebe gui</code></pre>
+      7 abas: Experimental Data → Engine Setup → Double Wiebe (prévia
+      instantânea das duas fases) → Simulation → Calibration (thread com
+      progresso e cancelamento) → Results (9 gráficos) → Export.</li>
+  </ol>
+
+  <div class="warnbox">⚠ <b>Não calibre os 10 parâmetros de uma vez.</b>
+  Comece com 2–4 parâmetros identificados (θ01, δ1, α) e observe os alertas
+  de sensibilidade/identificabilidade impressos ao final — parâmetros
+  "insensíveis" indicam que combinações diferentes produzem o mesmo erro.
+  Fixe <code>seed</code> para reprodutibilidade.</div>
+
+  <h3>Exportações do Double Wiebe</h3>
+  <p>Por execução: <code>results.csv</code> (14 colunas),
+  <code>parameters.yaml</code>, <code>metrics.json</code>,
+  <code>convergence.csv</code> (calibração),
+  <code>pressure_comparison.png/.pdf</code>, <code>heat_release.png</code>,
+  <code>burned_fraction.png</code> e <code>report.html</code>
+  (autocontido). Documentação completa: <code>double_wiebe/README.md</code>.</p>
+</section>
+
+<!-- ================================================================= -->
 <section id="api">
-  <h2>7. Uso como biblioteca (<code>single_wiebe.py</code>)</h2>
+  <h2>8. Uso como biblioteca (<code>single_wiebe.py</code>)</h2>
 
   <table>
     <tr><th>Função</th><th>Assinatura</th><th>Retorno</th></tr>
@@ -418,7 +487,7 @@ streamlit run app.py        <span style="color:#9aa3b0"># 3) inicia a GUI — na
 
 <!-- ================================================================= -->
 <section id="saidas">
-  <h2>8. Saídas geradas (<code>results/</code>)</h2>
+  <h2>9. Saídas geradas (<code>results/</code>)</h2>
 
   <h3>Gráficos</h3>
   <p>As <b>quatro primeiras figuras replicam os gráficos do notebook/PDF</b>
@@ -462,7 +531,7 @@ temperature_K; heat_loss_J; burned_fraction; dQ_dtheta_kJ_per_rad</code></pre>
 
 <!-- ================================================================= -->
 <section id="testes">
-  <h2>9. Testes</h2>
+  <h2>10. Testes</h2>
 <pre><code class="prompt">python -m pytest tests/ -v        # recomendado
 python tests/test_model.py        # alternativa sem pytest</code></pre>
   <p>15 testes cobrem: leitura dos 503/459 pontos, geometria (PMS/PMI, derivada
@@ -473,7 +542,7 @@ python tests/test_model.py        # alternativa sem pytest</code></pre>
 
 <!-- ================================================================= -->
 <section id="solucao-problemas">
-  <h2>10. Solução de problemas</h2>
+  <h2>11. Solução de problemas</h2>
 
   <table>
     <tr><th>Sintoma</th><th>Causa provável</th><th>Solução</th></tr>
