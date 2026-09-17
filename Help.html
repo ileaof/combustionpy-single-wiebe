@@ -150,8 +150,14 @@ pip install -r requirements.txt</code></pre>
 ├── README.md            # documentação detalhada (física, unidades, diferenças Mathematica×SciPy)
 ├── Help.html            # este arquivo de ajuda
 ├── results/             # gráficos (.png) e tabelas (.csv) gerados
-└── tests/
-    └── test_model.py    # 15 testes (geometria, Wiebe, dados, validação 409.385 kPa)</code></pre>
+├── tests/
+│   └── test_model.py    # 15 testes (geometria, Wiebe, dados, validação 409.385 kPa)
+└── combustion_gui/      # interface gráfica (Streamlit) — seção 6
+    ├── app.py           # interface (6 abas), sem equações próprias
+    ├── single_wiebe.py  # cópia estendida do modelo (EngineConfig, progresso/cancelamento)
+    ├── data_processing.py, optimization.py, plotting.py, reporting.py
+    ├── sample_data/     # dados de exemplo
+    └── tests/           # 25 testes da GUI</code></pre>
 
   <table>
     <tr><th>Arquivo</th><th>O que faz</th></tr>
@@ -296,7 +302,7 @@ python run_model.py --data "C:\dados\P_exp-Carga-3_45%.txt"</code></pre>
   <h2>6. Interface gráfica (GUI — Streamlit)</h2>
 
   <p>Além da linha de comando, existe uma <b>interface gráfica completa</b>
-  na pasta irmã <code>combustion_gui/</code> (um nível acima deste pacote).
+  na subpasta <code>combustion_gui/</code> deste repositório.
   Ela <b>não contém equações próprias</b>: chama exatamente as funções
   validadas deste módulo (<code>simulate_model</code>,
   <code>calibrate_pso</code>, geometria, Hohenberg) através de um objeto
@@ -331,7 +337,7 @@ python run_model.py --data "C:\dados\P_exp-Carga-3_45%.txt"</code></pre>
   </table>
 
   <h3>Comandos de execução (comentados)</h3>
-<pre><code class="prompt">cd ..\combustion_gui        <span style="color:#9aa3b0"># 1) entra na pasta da interface (irmã deste pacote)</span>
+<pre><code class="prompt">cd combustion_gui           <span style="color:#9aa3b0"># 1) entra na pasta da interface (subpasta do repositório)</span>
 python -m venv .venv        <span style="color:#9aa3b0"># 2) primeira vez: cria o ambiente virtual</span>
 .venv\Scripts\activate      <span style="color:#9aa3b0">#    ativa o ambiente (Windows)</span>
 pip install -r requirements.txt
@@ -342,7 +348,7 @@ streamlit run app.py        <span style="color:#9aa3b0"># 3) inicia a GUI — na
   <code>source .venv/bin/activate</code>.</p>
 
   <p>Em uma linha (com dependências já instaladas):</p>
-<pre><code class="prompt">cd ..\combustion_gui ; streamlit run app.py</code></pre>
+<pre><code class="prompt">cd combustion_gui ; streamlit run app.py</code></pre>
 
   <div class="box ok"><b>✔ Teste rápido:</b> na aba <i>Experimental Data</i>,
   carregue <code>sample_data\P_exp-Carga-3_45%.txt</code> (fornecido com a
@@ -351,9 +357,8 @@ streamlit run app.py        <span style="color:#9aa3b0"># 3) inicia a GUI — na
 
   <div class="box warn"><b>⚠ Erro comum:</b> <code>Error: Invalid value: File
   does not exist: app.py</code> significa que você executou o comando da
-  pasta errada (p. ex. em <code>single_wiebe\</code>). O <code>app.py</code>
-  está em <code>combustion_gui\</code> — use o
-  <code>cd ..\combustion_gui</code> acima antes.</div>
+  pasta errada. O <code>app.py</code> está em <code>combustion_gui\</code> —
+  use o <code>cd combustion_gui</code> acima antes.</div>
 
   <p>Documentação completa da GUI (telas, integração, tratamento de erros):
   <code>combustion_gui/README.md</code>.</p>

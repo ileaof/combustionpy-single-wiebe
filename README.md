@@ -67,8 +67,16 @@ single_wiebe/
 ├── README.md          # este documento
 ├── Help.html          # ajuda de uso (abra no navegador)
 ├── results/           # gráficos (.png) e tabelas (.csv) gerados
-└── tests/
-    └── test_model.py  # 15 testes (geometria, Wiebe, dados, validação 409.385 kPa)
+├── tests/
+│   └── test_model.py  # 15 testes (geometria, Wiebe, dados, validação 409.385 kPa)
+└── combustion_gui/    # interface gráfica (Streamlit) — ver seção abaixo
+    ├── app.py         # interface (6 abas), sem equações próprias
+    ├── single_wiebe.py  # cópia estendida do modelo (EngineConfig, calibradores com progresso)
+    ├── data_processing.py, optimization.py, plotting.py, reporting.py
+    ├── requirements.txt, README.md
+    ├── sample_data/   # dados de exemplo
+    ├── docs/          # figura do README da GUI
+    └── tests/         # 25 testes da GUI
 ```
 
 Arquivo de dados (fica **na pasta pai** do pacote):
@@ -134,11 +142,11 @@ Fluxo executado por `run_model.py`:
 
 ## Interface gráfica (GUI — Streamlit)
 
-Existe uma **interface gráfica completa** para este modelo, na pasta irmã
-`combustion_gui/` (um nível acima deste pacote). Ela não contém equações
-próprias: chama exatamente as funções validadas de `single_wiebe.py`
-(geometria, Wiebe, Hohenberg, EDOs, PSO/DE) através de um objeto
-`EngineConfig` configurável.
+Existe uma **interface gráfica completa** para este modelo, na subpasta
+[`combustion_gui/`](combustion_gui/README.md) deste repositório. Ela não
+contém equações próprias: chama exatamente as funções validadas de
+`single_wiebe.py` (geometria, Wiebe, Hohenberg, EDOs, PSO/DE) através de um
+objeto `EngineConfig` configurável.
 
 ### O que a GUI oferece
 
@@ -154,8 +162,8 @@ próprias: chama exatamente as funções validadas de `single_wiebe.py`
 ### Comandos de execução (comentados)
 
 ```powershell
-# 1) Entre na pasta da interface gráfica (irmã deste pacote)
-cd ..\combustion_gui
+# 1) Entre na pasta da interface gráfica
+cd combustion_gui
 
 # 2) Primeira vez: crie o ambiente virtual e instale as dependências
 python -m venv .venv                 # cria o ambiente (só na 1ª vez)
@@ -170,7 +178,7 @@ streamlit run app.py
 Em uma linha (após instalar as dependências):
 
 ```powershell
-cd ..\combustion_gui ; streamlit run app.py
+cd combustion_gui ; streamlit run app.py
 ```
 
 > **Dica:** para testar a GUI, carregue na aba *Experimental Data* o arquivo
@@ -180,8 +188,7 @@ cd ..\combustion_gui ; streamlit run app.py
 > pode ser cancelada a qualquer momento sem perder resultados anteriores.
 
 Detalhes completos (telas, integração GUI ↔ modelo, tratamento de erros)
-estão em `../combustion_gui/README.md` (na sua cópia local — a pasta da GUI
-não faz parte deste repositório).
+estão em [`combustion_gui/README.md`](combustion_gui/README.md).
 
 ## Dados de entrada
 
