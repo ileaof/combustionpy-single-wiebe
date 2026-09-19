@@ -158,7 +158,7 @@ def run_calibration(
             "Valor calibrado": val,
             "Limite inferior": lo,
             "Limite superior": hi,
-            "Unidade": "grau (°)" if p in ("theta0", "delta_theta") else "-",
+            "Unidade": "rad" if p in ("theta0", "delta_theta") else "-",
         }
         tabela.append(linha)
         if p in selected:

@@ -91,27 +91,55 @@ Larissa/
 
 ## Instalação
 
-Requisitos: **Python 3.9+**. Dependências em `requirements.txt`:
+Requisitos: **Python 3.9+** e **Git**. Dependências em `requirements.txt`:
 `numpy>=1.24`, `scipy>=1.10`, `matplotlib>=3.7`, `pandas>=2.0`, `pytest>=7.0`.
 
+### 1. Clonar o repositório
+
+```bash
+git clone https://github.com/ileaof/combustionpy-single-wiebe.git
+cd combustionpy-single-wiebe
+```
+
+Sem Git: no GitHub, use *Code → Download ZIP*, extraia o arquivo e entre na
+pasta extraída.
+
+### 2. Criar e ativar o ambiente virtual (`.venv`) — antes de instalar
+
+O ambiente virtual isola as dependências do projeto do Python do sistema.
+Crie-o **uma única vez**, na raiz do repositório clonado:
+
 ```powershell
-# Windows (PowerShell)
-cd single_wiebe
+# Windows (PowerShell ou cmd)
 python -m venv .venv
 .venv\Scripts\activate
-pip install -r requirements.txt
 ```
 
 ```bash
 # Linux / macOS
-cd single_wiebe
 python3 -m venv .venv
 source .venv/bin/activate
+```
+
+Com o ambiente ativo, o prompt passa a exibir `(.venv)`. Ative-o sempre que
+abrir um terminal novo (só o comando `activate`, sem recriar); para sair,
+use `deactivate`. A pasta `.venv/` já está no `.gitignore`.
+
+> **Windows:** se o PowerShell recusar a ativação com *"a execução de scripts
+> foi desabilitada neste sistema"*, rode uma vez
+> `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` e ative de novo.
+
+### 3. Instalar as dependências
+
+Com o `.venv` ativo:
+
+```bash
+python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-Se NumPy/SciPy/Matplotlib/pandas já estiverem instalados globalmente,
-o ambiente virtual é opcional.
+A interface gráfica tem dependências próprias (Streamlit, Plotly) — veja
+[Interface gráfica](#interface-gráfica-gui--streamlit).
 
 ## Execução rápida
 
@@ -163,13 +191,14 @@ objeto `EngineConfig` configurável.
 ### Comandos de execução (comentados)
 
 ```powershell
+# 0) Clone o repositório e crie/ative o .venv (ver "Instalação" acima)
+.venv\Scripts\activate               # ativa o ambiente (Windows)
+# source .venv/bin/activate          # Linux/macOS
+
 # 1) Entre na pasta da interface gráfica
 cd combustion_gui
 
-# 2) Primeira vez: crie o ambiente virtual e instale as dependências
-python -m venv .venv                 # cria o ambiente (só na 1ª vez)
-.venv\Scripts\activate               # ativa o ambiente (Windows)
-# source .venv/bin/activate          # Linux/macOS
+# 2) Primeira vez: instale as dependências da GUI (no mesmo .venv)
 pip install -r requirements.txt      # streamlit, plotly, numpy, scipy, pandas, matplotlib
 
 # 3) Inicie a interface — o navegador abre em http://localhost:8501
@@ -197,8 +226,8 @@ O **Double Wiebe Combustion Analysis** é a extensão bifásica deste projeto:
 duas funções de Wiebe (fase 1 pré-misturada, fase 2 controlada por difusão)
 ponderadas por `alpha`, acopladas ao mesmo modelo termodinâmico de zona única
 com transferência de calor de Hohenberg. É um pacote instalável, com CLI
-própria (`double-wiebe`) e GUI Streamlit, em `../double_wiebe/` (pasta irmã
-deste repositório).
+própria (`double-wiebe`) e GUI Streamlit, em repositório próprio:
+<https://github.com/ileaof/combustionpy-double-wiebe>.
 
 > *This combustion simulation employs a double Wiebe function and extends
 > the single Wiebe model developed as part of L. Queiroz's M.Sc. thesis
@@ -212,10 +241,21 @@ diretamente sobre o mesmo experimento.
 ### Como iniciar uma análise de Double Wiebe
 
 ```bash
-cd ../double_wiebe
+# 1) Clonar o repositório do Double Wiebe
+git clone https://github.com/ileaof/combustionpy-double-wiebe.git
+cd combustionpy-double-wiebe
+
+# 2) Criar e ativar o ambiente virtual — antes de instalar (só na 1ª vez)
+python -m venv .venv            # Linux/macOS: python3 -m venv .venv
+.venv\Scripts\activate          # Linux/macOS: source .venv/bin/activate
+
+# 3) Instalar e verificar
 pip install -e .                # instala o pacote e o comando `double-wiebe`
 double-wiebe --help             # verificação rápida
 ```
+
+Detalhes (extras opcionais, problemas de ativação no PowerShell) na seção
+*Instalação* do README do Double Wiebe.
 
 1. **Dados experimentais** — arquivo texto com duas colunas numéricas
    (ângulo, pressão); ângulo em radianos ou graus, pressão em Pa/kPa/bar.

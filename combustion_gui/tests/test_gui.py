@@ -260,3 +260,71 @@ def test_graficos_plotly_nao_vazios(res):
         assert len(fig.data) >= 1
     assert len(pl.fig_convergence([100.0, 90.0]).data) == 1
     assert len(pl.fig_convergence([]).data) == 0
+
+
+# ---------------------------------------------------------------------------
+# Arquivo de calibração (salvar / abrir)
+# ---------------------------------------------------------------------------
+def _cal_exemplo():
+    return {
+        "params": np.array([15.8754, 0.493762, 0.048356, 0.644175]),
+        "selected": ["Rc", "m"],
+        "erro": 134.6,
+        "iteracoes": 42,
+        "history": [200.0, 134.6],
+        "history_params": [np.array([16.0, 0.5, 0.0, 1.0]),
+                           np.array([15.8754, 0.493762, 0.048356, 0.644175])],
+        "parou_por_repeticao": False,
+        "cancelado": False,
+        "polish": {"erro_antes": 135.0, "erro_depois": 134.6},
+        "tabela": [{"Parâmetro": "Razão de compressão (Rc)",
+                    "Valor inicial": 16.0, "Valor calibrado": 15.8754,
+                    "Limite inferior": 15.0, "Limite superior": 17.0,
+                    "Unidade": "-"}],
+        "alertas": ["⚠ teste"],
+    }
+
+
+def test_calibracao_json_roundtrip():
+    cal = _cal_exemplo()
+    b = rep.calibration_json_bytes(
+        cal, engine_params={"rotação [rpm]": 3396.2}, data_name="dado.txt",
+        meta={"metodo": "PSO", "seed": 42},
+        theta=np.linspace(-2.0, 2.0, 11), pressure=np.linspace(90.0, 200.0, 11),
+    )
+    aberto = rep.read_calibration_json(io.BytesIO(b))
+    c2 = aberto["calibracao"]
+    assert np.allclose(c2["params"], cal["params"])
+    assert c2["erro"] == pytest.approx(cal["erro"])
+    assert c2["selected"] == cal["selected"]
+    assert c2["iteracoes"] == cal["iteracoes"]
+    assert c2["polish"] == cal["polish"]
+    assert c2["tabela"] == cal["tabela"]
+    assert c2["alertas"] == cal["alertas"]
+    assert np.allclose(c2["history"], cal["history"])
+    assert np.allclose(c2["history_params"][1], cal["history_params"][1])
+    assert np.allclose(aberto["theta"], np.linspace(-2.0, 2.0, 11))
+    assert np.allclose(aberto["pressao"], np.linspace(90.0, 200.0, 11))
+    assert aberto["motor"] == {"rotação [rpm]": 3396.2}
+    assert aberto["busca"] == {"metodo": "PSO", "seed": 42}
+    assert aberto["arquivo_experimental"] == "dado.txt"
+    # sem dados embutidos → par completo ausente não restaura nada
+    aberto2 = rep.read_calibration_json(io.BytesIO(
+        rep.calibration_json_bytes(cal)))
+    assert aberto2["theta"] is None and aberto2["pressao"] is None
+
+
+def test_calibracao_json_rejeita_arquivo_invalido():
+    with pytest.raises(ValueError):
+        rep.read_calibration_json(io.BytesIO(b'{"qualquer": 1}'))
+    with pytest.raises(ValueError):
+        rep.read_calibration_json(io.BytesIO(b"nao e json"))
+    with pytest.raises(ValueError):
+        rep.read_calibration_json(io.BytesIO(
+            b'{"analise": {"formato": "single-wiebe-calibracao"}}'))
+    # erro_kPa ausente: ValueError (a GUI só captura ValueError)
+    with pytest.raises(ValueError):
+        rep.read_calibration_json(io.BytesIO(
+            b'{"analise": {"formato": "single-wiebe-calibracao"}, '
+            b'"calibracao": {"Rc": 17, "m": 0.5, "theta0_rad": 0, '
+            b'"delta_theta_rad": 1}}'))

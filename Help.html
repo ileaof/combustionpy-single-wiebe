@@ -123,17 +123,41 @@
       <code>pandas</code> (análise dos CSVs) e <code>pytest</code> (testes).</li>
   </ul>
 
-  <h3>Windows (PowerShell) — ambiente virtual</h3>
-<pre><code class="prompt">cd caminho\para\Larissa\single_wiebe
-python -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements.txt</code></pre>
+  <h3>1.1 Clonar o repositório</h3>
+<pre><code class="prompt">git clone https://github.com/ileaof/combustionpy-single-wiebe.git
+cd combustionpy-single-wiebe</code></pre>
+  <p>Sem Git: no GitHub, use <i>Code → Download ZIP</i>, extraia o arquivo e
+  entre na pasta extraída.</p>
 
-  <h3>Linux / macOS</h3>
-<pre><code>cd caminho/para/Larissa/single_wiebe
-python3 -m venv .venv
-source .venv/bin/activate
+  <h3>1.2 Criar e ativar o ambiente virtual (<code>.venv</code>) — antes de instalar</h3>
+  <p>O ambiente virtual isola as dependências do projeto do Python do
+  sistema. Crie-o <b>uma única vez</b>, na raiz do repositório clonado.</p>
+
+  <p><b>Windows (PowerShell ou cmd):</b></p>
+<pre><code class="prompt">python -m venv .venv
+.venv\Scripts\activate</code></pre>
+
+  <p><b>Linux / macOS:</b></p>
+<pre><code>python3 -m venv .venv
+source .venv/bin/activate</code></pre>
+
+  <p>Com o ambiente ativo, o prompt passa a exibir <code>(.venv)</code>.
+  Ative-o sempre que abrir um terminal novo (só o comando
+  <code>activate</code>, sem recriar); para sair, use
+  <code>deactivate</code>. A pasta <code>.venv/</code> já está no
+  <code>.gitignore</code>.</p>
+
+  <div class="box warn"><b>⚠ Windows:</b> se o PowerShell recusar a ativação
+  com <i>"a execução de scripts foi desabilitada neste sistema"</i>, rode uma
+  vez <code>Set-ExecutionPolicy -Scope CurrentUser RemoteSigned</code> e
+  ative de novo.</div>
+
+  <h3>1.3 Instalar as dependências</h3>
+  <p>Com o <code>.venv</code> ativo:</p>
+<pre><code class="prompt">python -m pip install --upgrade pip
 pip install -r requirements.txt</code></pre>
+  <p>A interface gráfica tem dependências próprias (Streamlit, Plotly) — ver
+  <a href="#gui">seção 6</a>.</p>
 
   <div class="box warn"><b>⚠ Importante:</b> o arquivo de dados
   <code>P_exp-Carga-3_45%.txt</code> deve permanecer na pasta <b>pai</b> do pacote
@@ -338,10 +362,10 @@ python run_model.py --data "C:\dados\P_exp-Carga-3_45%.txt"</code></pre>
   </table>
 
   <h3>Comandos de execução (comentados)</h3>
-<pre><code class="prompt">cd combustion_gui           <span style="color:#9aa3b0"># 1) entra na pasta da interface (subpasta do repositório)</span>
-python -m venv .venv        <span style="color:#9aa3b0"># 2) primeira vez: cria o ambiente virtual</span>
-.venv\Scripts\activate      <span style="color:#9aa3b0">#    ativa o ambiente (Windows)</span>
+<pre><code class="prompt">.venv\Scripts\activate      <span style="color:#9aa3b0"># 0) ativa o .venv criado na seção 1 (Windows)</span>
+cd combustion_gui           <span style="color:#9aa3b0"># 1) entra na pasta da interface (subpasta do repositório)</span>
 pip install -r requirements.txt
+                            <span style="color:#9aa3b0"># 2) primeira vez: dependências da GUI no mesmo .venv</span>
                             <span style="color:#9aa3b0">#    streamlit, plotly, numpy, scipy, pandas...</span>
 streamlit run app.py        <span style="color:#9aa3b0"># 3) inicia a GUI — navegador abre em localhost:8501</span></code></pre>
 
@@ -372,10 +396,10 @@ streamlit run app.py        <span style="color:#9aa3b0"># 3) inicia a GUI — na
   <p>O <b>Double Wiebe Combustion Analysis</b> é a extensão bifásica deste
   projeto: duas funções de Wiebe (fase 1 pré-misturada, fase 2 controlada
   por difusão) ponderadas por <code>alpha</code>, acopladas ao mesmo modelo
-  termodinâmico de zona única com Hohenberg. Está em
-  <code>../double_wiebe/</code> (pasta irmã deste repositório) e é um
-  pacote instalável com CLI própria (<code>double-wiebe</code>) e GUI
-  Streamlit.</p>
+  termodinâmico de zona única com Hohenberg. É um pacote instalável com CLI
+  própria (<code>double-wiebe</code>) e GUI Streamlit, em repositório
+  próprio:
+  <a href="https://github.com/ileaof/combustionpy-double-wiebe">github.com/ileaof/combustionpy-double-wiebe</a>.</p>
 
   <div class="okbox">✔ <b>Redução garantida:</b> com <code>alpha = 1</code>
   (ou 0) e fases idênticas o Double Wiebe reproduz exatamente a Single
@@ -384,8 +408,11 @@ streamlit run app.py        <span style="color:#9aa3b0"># 3) inicia a GUI — na
 
   <h3>Passo a passo</h3>
   <ol>
-    <li><b>Instalar</b> (Python 3.11+):
-      <pre><code>cd ..\double_wiebe
+    <li><b>Clonar, criar o ambiente virtual e instalar</b> (Python 3.11+):
+      <pre><code>git clone https://github.com/ileaof/combustionpy-double-wiebe.git
+cd combustionpy-double-wiebe
+python -m venv .venv      # só na 1ª vez (Linux/macOS: python3 -m venv .venv)
+.venv\Scripts\activate    # Linux/macOS: source .venv/bin/activate
 pip install -e .          # instala o pacote e o comando `double-wiebe`
 double-wiebe --help</code></pre>
     </li>

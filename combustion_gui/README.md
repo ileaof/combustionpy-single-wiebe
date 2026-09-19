@@ -12,18 +12,32 @@ complementar à conversão Python do notebook Mathematica
 
 ## Instalação
 
-Requisitos: **Python 3.11+**.
+Requisitos: **Python 3.11+** e **Git**.
 
 ```bash
-cd combustion_gui
-python -m venv .venv
+# 1) Clonar o repositório (a GUI fica na subpasta combustion_gui/)
+git clone https://github.com/ileaof/combustionpy-single-wiebe.git
+cd combustionpy-single-wiebe/combustion_gui
+
+# 2) Criar e ativar o ambiente virtual (.venv) — antes de instalar, só na 1ª vez
+python -m venv .venv            # Linux/macOS: python3 -m venv .venv
 # Windows:
 .venv\Scripts\activate
 # Linux/macOS:
 source .venv/bin/activate
 
+# 3) Instalar as dependências (com o .venv ativo)
+python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
+
+Sem Git: no GitHub, use *Code → Download ZIP* e extraia. Com o ambiente
+ativo, o prompt exibe `(.venv)`; em cada terminal novo basta ativá-lo de
+novo (sem recriar). Se o PowerShell recusar a ativação (*"a execução de
+scripts foi desabilitada"*), rode uma vez
+`Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`. Se você já criou o
+`.venv` na raiz do repositório (README principal), pode usá-lo: ative-o e
+rode só o `pip install -r requirements.txt` desta pasta.
 
 ## Execução
 

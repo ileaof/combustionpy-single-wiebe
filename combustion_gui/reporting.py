@@ -100,6 +100,129 @@ def params_json_bytes(res: sw.ModelResult, cfg: sw.EngineConfig,
 
 
 # ---------------------------------------------------------------------------
+# Arquivo de calibração (salvar / abrir)
+# ---------------------------------------------------------------------------
+_CALIB_FORMATO = "single-wiebe-calibracao"
+_CALIB_VERSAO = 1
+
+
+def calibration_json_bytes(cal: Dict,
+                           engine_params: Optional[Dict] = None,
+                           data_name: str = "",
+                           meta: Optional[Dict] = None,
+                           theta: Optional[np.ndarray] = None,
+                           pressure: Optional[np.ndarray] = None) -> bytes:
+    """Serializa o resultado da calibração (dicionário `calib_result` da GUI)
+    num arquivo JSON reaberto por `read_calibration_json`.
+
+    Unidades: ângulos em radianos (formato interno — o mesmo vetor que
+    `simulate_full` consome). `theta`/`pressure` embutem os dados
+    experimentais usados na calibração; `meta` registra como a busca rodou
+    (método, semente, população...) e `engine_params` o motor, só para
+    rastreabilidade.
+    """
+    doc = {
+        "analise": {
+            "titulo": "Single Wiebe Combustion Analysis — Calibração",
+            "formato": _CALIB_FORMATO,
+            "versao": _CALIB_VERSAO,
+            "data_hora": datetime.now().isoformat(timespec="seconds"),
+            "arquivo_experimental": data_name,
+        },
+        "motor": engine_params or {},
+        "busca": meta or {},
+        "dados": {
+            "theta_rad": ([float(v) for v in theta]
+                          if theta is not None else []),
+            "pressao_kPa": ([float(v) for v in pressure]
+                            if pressure is not None else []),
+        },
+        "calibracao": {
+            "selected": list(cal.get("selected", [])),
+            "Rc": float(cal["params"][0]),
+            "m": float(cal["params"][1]),
+            "theta0_rad": float(cal["params"][2]),
+            "delta_theta_rad": float(cal["params"][3]),
+            "erro_kPa": float(cal["erro"]),
+            "iteracoes": int(cal.get("iteracoes", 0)),
+            "cancelado": bool(cal.get("cancelado", False)),
+            "parou_por_repeticao": bool(cal.get("parou_por_repeticao", False)),
+            "polish": cal.get("polish"),
+        },
+        "tabela": cal.get("tabela", []),
+        "alertas": list(cal.get("alertas", [])),
+        "historico": {
+            "erro_kPa": [float(h) for h in cal.get("history", [])],
+            "parametros": [[float(v) for v in p]
+                           for p in cal.get("history_params", [])],
+        },
+    }
+    return json.dumps(doc, indent=2, ensure_ascii=False).encode("utf-8")
+
+
+def read_calibration_json(arquivo) -> Dict:
+    """Lê um arquivo salvo por `calibration_json_bytes` e devolve um
+    dicionário com: 'calibracao' (o `calib_result` reconstruído, ângulos em
+    rad), 'theta'/'pressao' (dados embutidos como par, ou None), 'motor',
+    'busca' e 'arquivo_experimental'. Lança ValueError em arquivo inválido.
+    """
+    try:
+        texto = arquivo.read() if hasattr(arquivo, "read") else str(arquivo)
+        if isinstance(texto, bytes):
+            texto = texto.decode("utf-8")
+        doc = json.loads(texto)
+    except (AttributeError, UnicodeDecodeError, json.JSONDecodeError) as e:
+        raise ValueError(f"não é um JSON válido ({e}).") from e
+    if (not isinstance(doc, dict)
+            or (doc.get("analise") or {}).get("formato") != _CALIB_FORMATO):
+        raise ValueError('esperado um arquivo salvo pela GUI '
+                         f'("formato": "{_CALIB_FORMATO}").')
+    c = doc.get("calibracao") or {}
+    if any(k not in c for k in ("Rc", "m", "theta0_rad", "delta_theta_rad",
+                                "erro_kPa")):
+        raise ValueError('seção "calibracao" incompleta '
+                         "(Rc/m/theta0_rad/delta_theta_rad/erro_kPa).")
+    params = np.array([float(c["Rc"]), float(c["m"]),
+                       float(c["theta0_rad"]), float(c["delta_theta_rad"])])
+    if not np.all(np.isfinite(params)):
+        raise ValueError("parâmetros não finitos no arquivo.")
+
+    hist = doc.get("historico") or {}
+    calib = {
+        "params": params,
+        "selected": list(c.get("selected", [])),
+        "erro": float(c["erro_kPa"]),
+        "iteracoes": int(c.get("iteracoes", 0)),
+        "history": [float(h) for h in (hist.get("erro_kPa") or [])],
+        "history_params": [np.asarray(p, dtype=float)
+                           for p in (hist.get("parametros") or [])],
+        "parou_por_repeticao": bool(c.get("parou_por_repeticao", False)),
+        "cancelado": bool(c.get("cancelado", False)),
+        "polish": c.get("polish"),
+        "tabela": list(doc.get("tabela") or []),
+        "alertas": list(doc.get("alertas") or []),
+    }
+
+    dados = doc.get("dados") or {}
+    theta = (np.asarray(dados["theta_rad"], dtype=float)
+             if dados.get("theta_rad") else None)
+    pressao = (np.asarray(dados["pressao_kPa"], dtype=float)
+               if dados.get("pressao_kPa") else None)
+    if theta is None or pressao is None or theta.size != pressao.size:
+        theta = pressao = None       # só restaura o PAR completo
+
+    return {
+        "calibracao": calib,
+        "theta": theta,
+        "pressao": pressao,
+        "motor": dict(doc.get("motor") or {}),
+        "busca": dict(doc.get("busca") or {}),
+        "arquivo_experimental": str((doc.get("analise") or {})
+                                    .get("arquivo_experimental") or ""),
+    }
+
+
+# ---------------------------------------------------------------------------
 # Histórico da otimização
 # ---------------------------------------------------------------------------
 _OPT_PARAM_NAMES = ["Rc", "m", "theta0", "delta_theta"]

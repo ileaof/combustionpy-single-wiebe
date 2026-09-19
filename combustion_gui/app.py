@@ -60,6 +60,9 @@ def _init_state():
         calib_running=False,
         calib_cancel=False,
         calib_progress=None,      # dict compartilhado com a thread
+        tabela_unit="rad",        # unidade de exibição da tabela calibrada
+        calib_meta=None,          # dict como a busca rodou (método/seed...)
+        calib_open_name=None,     # (nome, tamanho) do último arquivo aberto
     )
     for k, v in defaults.items():
         if k not in st.session_state:
@@ -75,6 +78,21 @@ tabs = st.tabs([
 
 HELP_SEPARADOR = "Use 'auto' para detecção automática (vírgula, ponto-e-vírgula, tabulação ou espaços)."
 HELP_THETA0 = "Ângulo do virabrequim em que a combustão começa (graus). Valores negativos = antes do PMS."
+
+
+def _engine_params_dict(cfg: sw.EngineConfig) -> Dict:
+    """Snapshot dos parâmetros do motor p/ exports e arquivo de calibração."""
+    return {
+        "diâmetro [mm]": cfg.bore * 1000.0,
+        "curso [mm]": cfg.stroke * 1000.0,
+        "biela [mm]": cfg.rod_length * 1000.0,
+        "rotação [rpm]": cfg.rpm,
+        "kappa [-]": cfg.kappa,
+        "m_comb [kg/ciclo]": cfg.m_comb,
+        "PCI [kJ/kg]": cfg.pci,
+        "T1 [K]": cfg.T1,
+        "Tw [K]": cfg.Tw,
+    }
 
 
 # =============================================================================
@@ -250,7 +268,8 @@ with tabs[2]:
             rtol_sim = st.number_input("rtol", 1e-12, 1e-4, 1e-9, format="%.0e")
         with a2:
             atol_sim = st.number_input("atol", 1e-12, 1e-4, 1e-9, format="%.e")
-            Rc_sim = st.number_input("Razão de compressão (Rc) [-]", 2.0, 30.0, 17.0)
+            Rc_sim = st.number_input("Razão de compressão (Rc) [-]", 2.0, 30.0,
+                                     17.0)
         with a3:
             heat_transfer_sim = st.checkbox("Transferência de calor (Hohenberg)",
                                             value=True)
@@ -391,6 +410,12 @@ with tabs[3]:
                         "t_start": time.time(), "cancel": False}
             st.session_state.calib_progress = progress
             st.session_state.calib_cancel = False
+            st.session_state.calib_meta = {
+                "metodo": method_cal, "selecao": selected,
+                "populacao": int(pop_cal), "maxiter": int(iters_cal),
+                "tolerancia": float(tol_cal), "seed": int(seed_cal),
+                "polish": bool(polish_cal),
+            }
             run_kwargs = dict(
                 theta_exp=st.session_state.data_theta,
                 pressure_exp=st.session_state.data_press,
@@ -458,13 +483,129 @@ with tabs[3]:
     cal = st.session_state.calib_result
     if cal is not None:
         st.markdown("#### Parâmetros calibrados")
-        st.dataframe(pd.DataFrame(cal["tabela"]), use_container_width=True,
+        # Botão de conversão rad <-> grau: afeta SÓ a exibição da tabela;
+        # os valores internos (cal["params"]) permanecem em radianos.
+        unidade = st.session_state.tabela_unit
+        rotulo = ("Converter tabela para graus (°)" if unidade == "rad"
+                  else "Converter tabela para radianos (rad)")
+        if st.button(rotulo, key="converter_tabela"):
+            st.session_state.tabela_unit = "grau" if unidade == "rad" else "rad"
+        unidade = st.session_state.tabela_unit
+
+        # θ₀ e Δθ são guardados em rad; Rc e m são adimensionais
+        angulos = {opt.PARAM_LABELS["theta0"], opt.PARAM_LABELS["delta_theta"]}
+        tabela_vis = []
+        for linha in cal["tabela"]:
+            l2 = dict(linha)
+            if l2["Parâmetro"] in angulos:
+                if unidade == "grau":
+                    for k in ("Valor inicial", "Valor calibrado",
+                              "Limite inferior", "Limite superior"):
+                        l2[k] = np.degrees(l2[k])
+                l2["Unidade"] = "grau (°)" if unidade == "grau" else "rad"
+            tabela_vis.append(l2)
+        st.dataframe(pd.DataFrame(tabela_vis), use_container_width=True,
                      hide_index=True)
         for a in cal["alertas"]:
             st.warning(a)
         if cal.get("polish"):
             st.info(f"Refinamento local: erro {cal['polish']['erro_antes']:.6f} "
                     f"→ {cal['polish']['erro_depois']:.6f} kPa.")
+
+        # Mesmo comportamento do Double Wiebe: aplica os parâmetros calibrados
+        # e roda a simulação (os ângulos já chegam em rad, como o modelo espera)
+        if st.button("Aplicar parâmetros calibrados e rodar a simulação",
+                     key="aplicar_calib"):
+            theta = st.session_state.data_theta
+            P = st.session_state.data_press
+            if theta is None:
+                st.error("Carregue os dados experimentais antes de simular.")
+            else:
+                p = cal["params"]
+                opts = st.session_state.sim_params or {}
+                cfg_ap = st.session_state.engine_cfg
+                try:
+                    with st.spinner("Integrando o sistema de EDOs..."):
+                        res = sw.simulate_full(
+                            float(p[0]), float(p[1]), float(p[2]), float(p[3]),
+                            theta, P,
+                            rtol=opts.get("rtol", 1e-9),
+                            atol=opts.get("atol", 1e-9),
+                            method=opts.get("method", "DOP853"),
+                            cfg=cfg_ap,
+                        )
+                    if res.P_sim is None:
+                        st.error("A integração falhou para os parâmetros "
+                                 "calibrados (penalidade aplicada). "
+                                 "Resultados anteriores preservados.")
+                    else:
+                        st.session_state.sim_result = res
+                        st.session_state.sim_params = {
+                            "Rc": float(p[0]), "m": float(p[1]),
+                            "theta0_deg": float(np.degrees(p[2])),
+                            "delta_theta_deg": float(np.degrees(p[3])),
+                            "method": opts.get("method", "DOP853"),
+                            "rtol": opts.get("rtol", 1e-9),
+                            "atol": opts.get("atol", 1e-9),
+                        }
+                        st.success("Simulação executada com os parâmetros "
+                                   "calibrados — veja a aba **Results**.")
+                except Exception as e:  # noqa: BLE001
+                    st.error(f"Falha: {e}")
+
+        st.markdown("#### Salvar / abrir calibração")
+        sv, ab = st.columns(2)
+        with sv:
+            st.download_button(
+                "⬇ Salvar calibração (JSON)",
+                data=rep.calibration_json_bytes(
+                    cal,
+                    engine_params=_engine_params_dict(
+                        st.session_state.engine_cfg),
+                    data_name=st.session_state.data_name,
+                    meta=st.session_state.calib_meta,
+                    theta=st.session_state.data_theta,
+                    pressure=st.session_state.data_press),
+                file_name="calibracao_single_wiebe.json",
+                mime="application/json",
+                help="Salva parâmetros calibrados, histórico da busca, tabela "
+                     "e os dados experimentais usados — reaberto nesta aba.")
+        with ab:
+            up_cal = st.file_uploader("Abrir arquivo de calibração (.json)",
+                                      type=["json"], key="up_calib")
+        if up_cal is not None:
+            try:
+                aberto = rep.read_calibration_json(up_cal)
+            except ValueError as e:
+                st.error(f"Arquivo de calibração inválido: {e}")
+            else:
+                marca = (up_cal.name, up_cal.size)
+                if st.session_state.calib_open_name != marca:
+                    st.session_state.calib_result = aberto["calibracao"]
+                    st.session_state.calib_open_name = marca
+                    if (aberto["theta"] is not None
+                            and st.session_state.data_theta is None):
+                        th_ab, P_ab = aberto["theta"], aberto["pressao"]
+                        st.session_state.data_theta = th_ab
+                        st.session_state.data_press = P_ab
+                        st.session_state.data_name = (
+                            aberto["arquivo_experimental"] or up_cal.name)
+                        st.session_state.data_summary = {
+                            "n_obs": int(th_ab.size),
+                            "theta_min": float(th_ab.min()),
+                            "theta_max": float(th_ab.max()),
+                            "P_min": float(P_ab.min()),
+                            "P_max": float(P_ab.max()),
+                            "passo_medio": float(np.mean(np.diff(th_ab))),
+                            "n_descartadas": 0,
+                        }
+                    st.rerun()
+                st.success(f"Calibração aberta: erro = "
+                           f"{aberto['calibracao']['erro']:.6g} kPa.")
+                if aberto.get("busca"):
+                    st.caption("Busca salva no arquivo: "
+                               + "; ".join(f"{k}={v}" for k, v in
+                                           aberto["busca"].items()))
 
 
 # =============================================================================
@@ -543,17 +684,7 @@ with tabs[5]:
             "T_max_K": float(res.Tg_sim.max()),
             "Qp_final_J": float(res.Qp_sim[-1]),
         }
-        engine_params = {
-            "diâmetro [mm]": cfg.bore * 1000.0,
-            "curso [mm]": cfg.stroke * 1000.0,
-            "biela [mm]": cfg.rod_length * 1000.0,
-            "rotação [rpm]": cfg.rpm,
-            "kappa [-]": cfg.kappa,
-            "m_comb [kg/ciclo]": cfg.m_comb,
-            "PCI [kJ/kg]": cfg.pci,
-            "T1 [K]": cfg.T1,
-            "Tw [K]": cfg.Tw,
-        }
+        engine_params = _engine_params_dict(cfg)
         cal = st.session_state.calib_result
         e1, e2 = st.columns(2)
         with e1:
