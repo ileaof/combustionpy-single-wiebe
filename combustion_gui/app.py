@@ -394,11 +394,51 @@ with tabs[3]:
     polish_cal = st.checkbox("Refinamento local (L-BFGS-B) após a busca global",
                              value=False)
 
-    col_run, col_cancel, _ = st.columns([1, 1, 2])
+    col_run, col_cancel, col_load = st.columns([1, 1, 2])
     run_btn = col_run.button("Run calibration", type="primary",
                              disabled=st.session_state.calib_running)
     cancel_btn = col_cancel.button("Cancelar calibração",
                                    disabled=not st.session_state.calib_running)
+
+    # Carregar calibração salva — não exige rodar uma calibração antes
+    up_cal = col_load.file_uploader(
+        "📂 Carregar calibração (.json)", type=["json"], key="up_calib",
+        help="Abre um JSON salvo por “⬇ Salvar calibração” e restaura os "
+             "parâmetros calibrados sem recalibrar; os dados experimentais "
+             "só são restaurados se a sessão estiver vazia.")
+    if up_cal is not None:
+        try:
+            aberto = rep.read_calibration_json(up_cal)
+        except ValueError as e:
+            st.error(f"Arquivo de calibração inválido: {e}")
+        else:
+            marca = (up_cal.name, up_cal.size)
+            if st.session_state.calib_open_name != marca:
+                st.session_state.calib_result = aberto["calibracao"]
+                st.session_state.calib_open_name = marca
+                if (aberto["theta"] is not None
+                        and st.session_state.data_theta is None):
+                    th_ab, P_ab = aberto["theta"], aberto["pressao"]
+                    st.session_state.data_theta = th_ab
+                    st.session_state.data_press = P_ab
+                    st.session_state.data_name = (
+                        aberto["arquivo_experimental"] or up_cal.name)
+                    st.session_state.data_summary = {
+                        "n_obs": int(th_ab.size),
+                        "theta_min": float(th_ab.min()),
+                        "theta_max": float(th_ab.max()),
+                        "P_min": float(P_ab.min()),
+                        "P_max": float(P_ab.max()),
+                        "passo_medio": float(np.mean(np.diff(th_ab))),
+                        "n_descartadas": 0,
+                    }
+                st.rerun()
+            st.success(f"Calibração aberta: erro = "
+                       f"{aberto['calibracao']['erro']:.6g} kPa.")
+            if aberto.get("busca"):
+                st.caption("Busca salva no arquivo: "
+                           + "; ".join(f"{k}={v}" for k, v in
+                                       aberto["busca"].items()))
 
     if run_btn:
         if st.session_state.data_theta is None:
@@ -553,59 +593,22 @@ with tabs[3]:
                 except Exception as e:  # noqa: BLE001
                     st.error(f"Falha: {e}")
 
-        st.markdown("#### Salvar / abrir calibração")
-        sv, ab = st.columns(2)
-        with sv:
-            st.download_button(
-                "⬇ Salvar calibração (JSON)",
-                data=rep.calibration_json_bytes(
-                    cal,
-                    engine_params=_engine_params_dict(
-                        st.session_state.engine_cfg),
-                    data_name=st.session_state.data_name,
-                    meta=st.session_state.calib_meta,
-                    theta=st.session_state.data_theta,
-                    pressure=st.session_state.data_press),
-                file_name="calibracao_single_wiebe.json",
-                mime="application/json",
-                help="Salva parâmetros calibrados, histórico da busca, tabela "
-                     "e os dados experimentais usados — reaberto nesta aba.")
-        with ab:
-            up_cal = st.file_uploader("Abrir arquivo de calibração (.json)",
-                                      type=["json"], key="up_calib")
-        if up_cal is not None:
-            try:
-                aberto = rep.read_calibration_json(up_cal)
-            except ValueError as e:
-                st.error(f"Arquivo de calibração inválido: {e}")
-            else:
-                marca = (up_cal.name, up_cal.size)
-                if st.session_state.calib_open_name != marca:
-                    st.session_state.calib_result = aberto["calibracao"]
-                    st.session_state.calib_open_name = marca
-                    if (aberto["theta"] is not None
-                            and st.session_state.data_theta is None):
-                        th_ab, P_ab = aberto["theta"], aberto["pressao"]
-                        st.session_state.data_theta = th_ab
-                        st.session_state.data_press = P_ab
-                        st.session_state.data_name = (
-                            aberto["arquivo_experimental"] or up_cal.name)
-                        st.session_state.data_summary = {
-                            "n_obs": int(th_ab.size),
-                            "theta_min": float(th_ab.min()),
-                            "theta_max": float(th_ab.max()),
-                            "P_min": float(P_ab.min()),
-                            "P_max": float(P_ab.max()),
-                            "passo_medio": float(np.mean(np.diff(th_ab))),
-                            "n_descartadas": 0,
-                        }
-                    st.rerun()
-                st.success(f"Calibração aberta: erro = "
-                           f"{aberto['calibracao']['erro']:.6g} kPa.")
-                if aberto.get("busca"):
-                    st.caption("Busca salva no arquivo: "
-                               + "; ".join(f"{k}={v}" for k, v in
-                                           aberto["busca"].items()))
+        st.markdown("#### Salvar calibração")
+        st.download_button(
+            "⬇ Salvar calibração (JSON)",
+            data=rep.calibration_json_bytes(
+                cal,
+                engine_params=_engine_params_dict(
+                    st.session_state.engine_cfg),
+                data_name=st.session_state.data_name,
+                meta=st.session_state.calib_meta,
+                theta=st.session_state.data_theta,
+                pressure=st.session_state.data_press),
+            file_name="calibracao_single_wiebe.json",
+            mime="application/json",
+            help="Salva parâmetros calibrados, histórico da busca, tabela "
+                 "e os dados experimentais usados — reabra no botão "
+                 "“📂 Carregar calibração”, junto ao Run calibration.")
 
 
 # =============================================================================
