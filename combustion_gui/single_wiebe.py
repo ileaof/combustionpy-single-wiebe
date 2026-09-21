@@ -41,6 +41,7 @@ from dataclasses import dataclass, field
 from typing import Callable, Dict, List, Optional, Tuple
 
 import numpy as np
+import scipy
 from scipy.integrate import solve_ivp
 from scipy.optimize import differential_evolution
 
@@ -645,6 +646,7 @@ def calibrate_pso_bounds(
     progress_callback: Optional[Callable[[int, float, np.ndarray], None]] = None,
     cancel_check: Optional[Callable[[], bool]] = None,
     expand: Optional[Callable[[np.ndarray], np.ndarray]] = None,
+    eval_batch: Optional[Callable[[np.ndarray], np.ndarray]] = None,
 ) -> Dict:
     """PSO do notebook com limites/parametrização arbitrários.
 
@@ -653,6 +655,9 @@ def calibrate_pso_bounds(
     o laço para e o resultado traz "cancelado": True.
     `expand(x)` mapeia o vetor otimizado para o vetor completo de parâmetros
     (usado quando apenas parte dos parâmetros é calibrada; default: identidade).
+    `eval_batch(X)` [MODO ACELERADO]: avalia o enxame inteiro (S, nvar) de
+    uma vez (ex.: GPU, gpu_backend.py); a dinâmica do PSO é a mesma. Sem
+    ele, cada partícula é avaliada com simulate_model (compatibilidade).
     """
     rng = np.random.default_rng(seed)
     li = np.asarray(lower, dtype=float)
@@ -663,8 +668,13 @@ def calibrate_pso_bounds(
         xf = expand(x) if expand is not None else x
         return simulate_model(*xf, theta_exp, pressure_exp, cfg=cfg)[0]
 
+    def avaliar(X: np.ndarray) -> np.ndarray:
+        if eval_batch is not None:
+            return np.asarray(eval_batch(X), dtype=float)
+        return np.array([fitness(X[j]) for j in range(X.shape[0])])
+
     X = li + rng.random((n_particulas, nvar)) * (ls - li)
-    fX = np.array([fitness(X[j]) for j in range(n_particulas)])
+    fX = avaliar(X)
 
     P_best = X.copy()
     f_best = fX.copy()
@@ -683,7 +693,7 @@ def calibrate_pso_bounds(
         X = X + beta * r1 * (P_best - X) + beta * r2 * (P_best[jbest] - X)
         X = np.clip(X, li, ls)
 
-        fX = np.array([fitness(X[j]) for j in range(n_particulas)])
+        fX = avaliar(X)
 
         improved = fX < f_best
         P_best[improved] = X[improved]
@@ -733,12 +743,17 @@ def calibrate_de_bounds(
     progress_callback: Optional[Callable[[int, float, np.ndarray], None]] = None,
     cancel_check: Optional[Callable[[], bool]] = None,
     expand: Optional[Callable[[np.ndarray], np.ndarray]] = None,
+    eval_batch: Optional[Callable[[np.ndarray], np.ndarray]] = None,
 ) -> Dict:
     """Differential evolution com limites arbitrários + progresso/cancelamento.
 
     Retornar True de `cancel_check` interrompe o DE (scipy trata callback
     True como parada). `expand(x)` mapeia o vetor otimizado para o vetor
     completo de parâmetros (default: identidade).
+    `eval_batch(X)` [MODO ACELERADO]: avalia a população inteira de cada
+    geração de uma vez (vectorized=True). O scipy exige então
+    updating="deferred", logo a TRAJETÓRIA difere do modo padrão
+    ("immediate"); sem eval_batch o comportamento é o original.
     """
     bounds = list(zip(np.asarray(lower, float), np.asarray(upper, float)))
 
@@ -746,17 +761,14 @@ def calibrate_de_bounds(
         xf = expand(x) if expand is not None else x
         return simulate_model(*xf, theta_exp, pressure_exp, cfg=cfg)[0]
 
+    def objective_vec(xt: np.ndarray) -> np.ndarray:
+        # scipy vectorized: recebe (nvar, S) e espera (S,)
+        return np.asarray(eval_batch(np.atleast_2d(xt.T)), dtype=float)
+
     history: List[float] = []
     history_params: List[np.ndarray] = []
 
-    def callback(intermediate_result=None, **_):
-        # scipy >= 1.9 passa IntermediateResult; manter compatível com xk.
-        x = (intermediate_result.x
-             if intermediate_result is not None and hasattr(intermediate_result, "x")
-             else _.get("xk"))
-        f = (float(intermediate_result.fun)
-             if intermediate_result is not None and hasattr(intermediate_result, "fun")
-             else objective(x))
+    def _registrar(x, f):
         history.append(f)
         history_params.append(np.asarray(x, dtype=float).copy())
         if progress_callback is not None:
@@ -765,16 +777,29 @@ def calibrate_de_bounds(
             return True  # solicita parada do DE
         return False
 
+    # O scipy só usa a assinatura nova quando o ÚNICO parâmetro se chama
+    # `intermediate_result` (scipy >= 1.12); senão chama callback(x, conv).
+    def callback(intermediate_result):
+        return _registrar(np.asarray(intermediate_result.x, dtype=float),
+                          float(intermediate_result.fun))
+
+    def callback_antigo(xk, convergence=0.0):
+        return _registrar(np.asarray(xk, dtype=float), objective(xk))
+
+    _versao = tuple(int(v) for v in scipy.__version__.split(".")[:2])
+    callback_de = callback if _versao >= (1, 12) else callback_antigo
+
+    lote = dict(vectorized=True, updating="deferred") if eval_batch else         dict(updating="immediate")
     result = differential_evolution(
-        objective,
+        objective_vec if eval_batch is not None else objective,
         bounds,
         seed=seed,
         maxiter=maxiter,
         popsize=popsize,
         tol=tol,
         polish=polish,
-        updating="immediate",
-        callback=callback,
+        callback=callback_de,
+        **lote,
     )
 
     best = result.x.copy()
@@ -786,7 +811,9 @@ def calibrate_de_bounds(
         "history_params": history_params,
         "success": bool(result.success),
         "message": str(result.message),
-        "cancelado": bool(not result.success and "stopped" in result.message.lower()),
+        # scipy: "callback function requested stop early"
+        "cancelado": bool(cancel_check is not None and not result.success
+                          and "stop" in result.message.lower()),
     }
 
 

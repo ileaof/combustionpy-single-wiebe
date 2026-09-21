@@ -194,6 +194,20 @@ def test_pso_bounds_cancelamento(data):
     assert r["cancelado"] and r["iteracoes"] <= 1
 
 
+def test_de_bounds_roda_e_cancela(data):
+    """DE (serial) roda com o scipy instalado e respeita o cancelamento
+    (regressão: callback com assinatura que o scipy >= 1.12 não aceitava)."""
+    theta, P, _ = data
+    r = sw.calibrate_de_bounds(theta, P, sw.LOWER, sw.UPPER, seed=1,
+                               maxiter=2, popsize=3)
+    assert len(r["history"]) >= 1 and not r["cancelado"]
+    assert np.all(r["params"] >= sw.LOWER) and np.all(r["params"] <= sw.UPPER)
+    r2 = sw.calibrate_de_bounds(theta, P, sw.LOWER, sw.UPPER, seed=1,
+                                maxiter=50, popsize=3,
+                                cancel_check=lambda: True)
+    assert r2["cancelado"] and len(r2["history"]) == 1
+
+
 def test_selecao_de_parametros_fixa_os_outros(data):
     theta, P, _ = data
     r = opt.run_calibration(

@@ -351,7 +351,8 @@ python run_model.py --data "C:\dados\P_exp-Carga-3_45%.txt"</code></pre>
     <tr><td><b>Calibration</b></td>
         <td>PSO compatível com o notebook ou differential_evolution;
         seleção de parâmetros livres, limites por parâmetro, refinamento
-        local opcional, <b>progresso ao vivo</b> e botão de cancelamento</td></tr>
+        local opcional, <b>progresso ao vivo</b> e botão de cancelamento;
+        <b>modo acelerado por GPU (CUDA)</b> opcional</td></tr>
     <tr><td><b>Results</b></td>
         <td>9 gráficos interativos (Plotly): pressão, resíduo, fração
         queimada, liberação de calor, temperatura, perda, volume, diagrama
@@ -384,6 +385,19 @@ streamlit run app.py        <span style="color:#9aa3b0"># 3) inicia a GUI — na
   does not exist: app.py</code> significa que você executou o comando da
   pasta errada. O <code>app.py</code> está em <code>combustion_gui\</code> —
   use o <code>cd combustion_gui</code> acima antes.</div>
+
+  <h3>Calibração na GPU (CUDA) — opcional</h3>
+  <p>Com uma placa NVIDIA, instale o CuPy no mesmo <code>.venv</code>:</p>
+<pre><code class="prompt">pip install cupy-cuda12x</code></pre>
+  <p>Na aba <b>Calibration</b>, abra <b>Desempenho (CPU / GPU)</b> e escolha
+  <b>GPU — CUDA</b> (precisão <code>float32</code> recomendada). A população
+  inteira é integrada de uma vez na GPU com RK4 de passo fixo; o erro final
+  é sempre recalculado com a referência (solve_ivp). Medido numa RTX 4050:
+  PSO de 78,6 s → 0,6 s, com o mesmo ótimo (≈ 63,85 kPa).</p>
+  <div class="box warn"><b>⚠</b> Se aparecer o aviso de que o DOP853 falhou
+  no melhor candidato, use o integrador <b>LSODA</b> na aba Simulation para
+  esses parâmetros (acontece com <code>m</code> pequeno). Detalhes em
+  <code>combustion_gui/README.md</code>.</div>
 
   <p>Documentação completa da GUI (telas, integração, tratamento de erros):
   <code>combustion_gui/README.md</code>.</p>

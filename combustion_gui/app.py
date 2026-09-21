@@ -15,13 +15,16 @@ from __future__ import annotations
 import threading
 import time
 from datetime import datetime
+from pathlib import Path
 from typing import Dict
 
 import numpy as np
 import pandas as pd
 import streamlit as st
+import streamlit.components.v1 as components
 
 import data_processing as dp
+import gpu_backend as gpu
 import optimization as opt
 import plotting as pl
 import reporting as rep
@@ -36,7 +39,35 @@ st.set_page_config(
 # ---------------------------------------------------------------------------
 # Header
 # ---------------------------------------------------------------------------
-st.markdown("# Single Wiebe Combustion Analysis")
+HELP_PATH = Path(__file__).resolve().parents[1] / "Help.html"
+
+
+@st.dialog("📖 Ajuda — Single Wiebe", width="large")
+def _dialogo_ajuda(html: str) -> None:
+    """Mostra o Help.html do repositório dentro da GUI."""
+    st.download_button("⬇ Baixar Help.html (abrir no navegador)",
+                       html.encode("utf-8"), file_name="Help.html",
+                       mime="text/html")
+    if hasattr(st, "iframe"):          # Streamlit >= 1.52
+        st.iframe(html, height=650)
+    else:
+        components.html(html, height=650, scrolling=True)
+
+
+def _botao_ajuda() -> None:
+    """Botão 📖 Ajuda do cabeçalho (abre o guia passo a passo)."""
+    if st.button("📖 Ajuda", help="Abre o guia passo a passo (Help.html)",
+                 key="botao_ajuda"):
+        if HELP_PATH.exists():
+            _dialogo_ajuda(HELP_PATH.read_text(encoding="utf-8"))
+        else:
+            st.warning("Help.html não encontrado — ele fica na raiz do repositório (pasta acima de combustion_gui/).")
+
+
+col_titulo, col_ajuda = st.columns([6, 1], vertical_alignment="center")
+col_titulo.markdown("# Single Wiebe Combustion Analysis")
+with col_ajuda:
+    _botao_ajuda()
 st.markdown(
     "This combustion simulation employs a single Wiebe function and was "
     "developed as part of L. Queiroz’s M.Sc. thesis under the supervision "
@@ -394,6 +425,30 @@ with tabs[3]:
     polish_cal = st.checkbox("Refinamento local (L-BFGS-B) após a busca global",
                              value=False)
 
+    with st.expander("Desempenho (CPU / GPU)"):
+        gpu_ok = gpu.cuda_available()
+        st.caption(
+            (f"GPU detectada: **{gpu.gpu_name()}**." if gpu_ok else
+             "Nenhuma GPU CUDA detectada (requer placa NVIDIA + "
+             "`pip install cupy-cuda12x`).")
+            + " O modo acelerado integra a população inteira de uma vez com "
+              "RK4 de passo fixo; o melhor candidato é sempre re-avaliado "
+              "com a referência (solve_ivp) e esse é o erro reportado.")
+        opcoes_backend = [b for b in opt.BACKENDS if gpu_ok or b != "cuda"]
+        g1, g2, g3 = st.columns(3)
+        backend_cal = g1.selectbox(
+            "Backend", opcoes_backend, index=0,
+            format_func=lambda b: opt.BACKENDS[b], key="calib_backend")
+        precision_cal = g2.selectbox(
+            "Precisão (modo acelerado)", ["float32", "float64"], 0,
+            key="calib_precision",
+            help="float32 é muito mais rápido em GPUs de consumo; o erro "
+                 "final é sempre recalculado em float64 com solve_ivp.")
+        substeps_cal = g3.number_input(
+            "Sub-passos do RK4", 1, 64, 4, key="calib_substeps",
+            help="Sub-passos por intervalo entre ângulos experimentais. "
+                 "Mais sub-passos = mais preciso e mais lento.")
+
     col_run, col_cancel, col_load = st.columns([1, 1, 2])
     run_btn = col_run.button("Run calibration", type="primary",
                              disabled=st.session_state.calib_running)
@@ -455,6 +510,8 @@ with tabs[3]:
                 "populacao": int(pop_cal), "maxiter": int(iters_cal),
                 "tolerancia": float(tol_cal), "seed": int(seed_cal),
                 "polish": bool(polish_cal),
+                "backend": backend_cal,
+                "precisao": precision_cal if backend_cal != "serial" else "float64",
             }
             run_kwargs = dict(
                 theta_exp=st.session_state.data_theta,
@@ -475,6 +532,9 @@ with tabs[3]:
                 tolerancia=tol_cal,
                 seed=int(seed_cal),
                 local_polish=polish_cal,
+                backend=backend_cal,
+                precision=precision_cal,
+                substeps=int(substeps_cal),
             )
             holder: Dict = {}
             th_worker = threading.Thread(
@@ -513,7 +573,8 @@ with tabs[3]:
                 else:
                     st.success(
                         f"Calibração concluída: erro = {r['erro']:.6f} kPa em "
-                        f"{r['iteracoes']} iterações."
+                        f"{r['iteracoes']} iterações "
+                        f"({r.get('tempo_s', 0.0):.1f} s)."
                     )
 
     if cancel_btn and st.session_state.calib_running:
@@ -548,6 +609,14 @@ with tabs[3]:
                      hide_index=True)
         for a in cal["alertas"]:
             st.warning(a)
+        val = cal.get("validacao")
+        if val:
+            st.info(
+                f"Modo acelerado ({opt.BACKENDS[val['backend']]}, "
+                f"{val['precision']}, {val['substeps']} sub-passos): erro RK4 = "
+                f"{val['erro_lote']:.6f} kPa → erro de referência "
+                f"({val['integrador']}) = {val['erro_referencia']:.6f} kPa "
+                f"(diferença {val['diferenca']:.4f} kPa).")
         if cal.get("polish"):
             st.info(f"Refinamento local: erro {cal['polish']['erro_antes']:.6f} "
                     f"→ {cal['polish']['erro_depois']:.6f} kPa.")

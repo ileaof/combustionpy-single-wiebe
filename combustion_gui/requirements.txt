@@ -5,3 +5,4 @@ scipy>=1.10
 pandas>=2.0
 matplotlib>=3.7
 pytest>=7.0
+# opcional (GPU NVIDIA, modo acelerado): pip install cupy-cuda12x
